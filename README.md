@@ -250,7 +250,7 @@ dinámicamente a partir de esta variable.
 | `next`, `react` | Framework y UI |
 | `tailwindcss` | Estilos |
 | `pdf-lib` | Unir, dividir, rotar, comprimir, extraer/eliminar/ordenar páginas, imágenes→PDF |
-| `pdfjs-dist` | Renderizar páginas PDF a imagen (PDF→JPG) |
+| `pdfjs-dist` | Renderizar páginas PDF a imagen (PDF→JPG). Fijado en la versión `3.11.174` a propósito: sigue publicando un worker clásico (no ES module), necesario para que `next build`/webpack no falle al empaquetarlo (ver comentario en `src/lib/pdf/pdfToImage.ts` y `scripts/copy-pdf-worker.js`). |
 | `jszip` | Empaquetar varias imágenes en un ZIP descargable |
 | `stripe` | Checkout y verificación de webhooks |
 | `zod` | Validación de datos en la API de contacto |

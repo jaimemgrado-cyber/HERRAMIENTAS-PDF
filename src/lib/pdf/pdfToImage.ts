@@ -4,15 +4,30 @@ import JSZip from "jszip";
  * Renderiza cada página de un PDF como imagen JPG usando pdf.js sobre un
  * <canvas>, y empaqueta el resultado en un ZIP. Todo ocurre en el navegador.
  *
- * pdfjs-dist se importa dinámicamente porque depende de un Web Worker y de
- * APIs del navegador (no debe evaluarse en el servidor).
+ * NOTA IMPORTANTE sobre el worker de pdf.js (evita el error de build
+ * "'import'/'export' no se pueden usar fuera del código del módulo"):
+ *
+ * El error se produce porque `new URL("pdfjs-dist/build/pdf.worker.min.mjs",
+ * import.meta.url)` obliga a webpack a tratar ese archivo como un chunk más
+ * que debe empaquetar y minificar. El worker de pdf.js es un módulo ES
+ * (contiene `import`/`export` de alto nivel) pero el chunk que genera
+ * webpack para él no se emite en formato de módulo, así que el proceso de
+ * minificado del build falla al encontrarse esa sintaxis.
+ *
+ * La solución: dejar que webpack siga empaquetando normalmente la librería
+ * principal de pdfjs-dist (import habitual, sin tocar), pero servir el
+ * WORKER como un archivo estático plano desde `/public`, referenciado con
+ * una simple cadena de texto. Al vivir en `public/`, Next.js lo sirve tal
+ * cual: webpack no lo analiza, no lo empaqueta y no lo minifica, así que no
+ * hay nada que pueda romper el build. El archivo se copia automáticamente
+ * a `public/pdfjs/pdf.worker.min.js` tras `npm install` (ver
+ * `scripts/copy-pdf-worker.js` y el hook "postinstall" en package.json),
+ * usando la build clásica (no-módulo) del worker que pdfjs-dist 3.x sigue
+ * publicando junto a la moderna en ES modules.
  */
 export async function pdfToJpgZip(file: File, quality = 0.85): Promise<Blob> {
   const pdfjsLib = await import("pdfjs-dist");
-  pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
-    "pdfjs-dist/build/pdf.worker.min.mjs",
-    import.meta.url
-  ).toString();
+  pdfjsLib.GlobalWorkerOptions.workerSrc = "/pdfjs/pdf.worker.min.js";
 
   const bytes = await file.arrayBuffer();
   const loadingTask = pdfjsLib.getDocument({ data: bytes });

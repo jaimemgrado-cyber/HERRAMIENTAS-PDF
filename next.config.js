@@ -23,6 +23,18 @@ const securityHeaders = [
 const nextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
+  // pdfjs-dist opcionalmente referencia el paquete Node "canvas" (solo se usa
+  // en entornos Node sin DOM). No lo instalamos ni lo necesitamos en el
+  // navegador, así que le decimos a webpack que no intente resolverlo; de lo
+  // contrario el build puede fallar con "Module not found: Can't resolve
+  // 'canvas'" al empaquetar pdfjs-dist para el cliente.
+  webpack: (config) => {
+    config.resolve.fallback = {
+      ...config.resolve.fallback,
+      canvas: false,
+    };
+    return config;
+  },
   async headers() {
     return [
       {
