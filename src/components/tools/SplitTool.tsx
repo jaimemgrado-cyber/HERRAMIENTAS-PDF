@@ -6,9 +6,11 @@ import UploadZone from "@/components/UploadZone";
 import ProgressBar from "@/components/ProgressBar";
 import DownloadButton from "@/components/DownloadButton";
 import ErrorMessage from "@/components/ErrorMessage";
+import UsageStatus from "@/components/UsageStatus";
 import { splitPdf, type SplitRange } from "@/lib/pdf/split";
 import { validatePdfFile, friendlyErrorMessage } from "@/lib/validation";
 import { PLAN_LIMITS } from "@/lib/plan-limits";
+import { useUsageLimit } from "@/lib/useUsageLimit";
 
 export default function SplitTool() {
   const [file, setFile] = useState<File | null>(null);
@@ -17,6 +19,7 @@ export default function SplitTool() {
   const [processing, setProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [results, setResults] = useState<{ name: string; blob: Blob }[] | null>(null);
+  const usage = useUsageLimit();
 
   const maxSizeMB = PLAN_LIMITS.free.maxFileSizeMB;
 
@@ -57,7 +60,16 @@ export default function SplitTool() {
   };
 
   const handleSplit = async () => {
+    if (processing) return;
     if (!file) return;
+
+    if (!usage.checkCanProceed()) {
+      setError(
+        `Has alcanzado tus ${usage.limit} operaciones gratuitas de hoy. Puedes volver mañana o actualizar a PDF Pro.`
+      );
+      return;
+    }
+
     setProcessing(true);
     setError(null);
     try {
@@ -67,6 +79,7 @@ export default function SplitTool() {
         setError("No se ha generado ningún archivo. Revisa el rango de páginas indicado.");
       } else {
         setResults(out);
+        usage.consume();
       }
     } catch (err) {
       setError(friendlyErrorMessage(err));
@@ -74,6 +87,8 @@ export default function SplitTool() {
       setProcessing(false);
     }
   };
+
+  const isBlocked = usage.hydrated && usage.isLimitReached;
 
   return (
     <div>
@@ -99,7 +114,7 @@ export default function SplitTool() {
             Separa cada rango con una coma. Cada rango generará un archivo PDF independiente.
           </p>
 
-          {!results && (
+          {!results && !isBlocked && (
             <button
               type="button"
               onClick={handleSplit}
@@ -108,6 +123,16 @@ export default function SplitTool() {
             >
               Dividir PDF
             </button>
+          )}
+
+          {!results && (
+            <UsageStatus
+              hydrated={usage.hydrated}
+              used={usage.used}
+              remaining={usage.remaining}
+              limit={usage.limit}
+              isLimitReached={usage.isLimitReached}
+            />
           )}
         </div>
       )}

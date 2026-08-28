@@ -58,7 +58,7 @@ export default function CookiesPage() {
         <h2>Cómo gestionar tus preferencias</h2>
         <p>
           Puedes cambiar tu decisión en cualquier momento borrando la preferencia guardada en tu
-          navegador o, cuando esté disponible, mediante el enlace "Configurar cookies" del banner
+          navegador o, cuando esté disponible, mediante el enlace &quot;Configurar cookies&quot; del banner
           que aparece al visitar el sitio.
         </p>
 

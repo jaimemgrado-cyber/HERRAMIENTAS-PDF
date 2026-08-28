@@ -12,7 +12,7 @@ function envInt(name: string, fallback: number): number {
 export const PLAN_LIMITS = {
   free: {
     maxFileSizeMB: envInt("FREE_MAX_FILE_SIZE_MB", 15),
-    dailyOperations: envInt("FREE_DAILY_OPERATIONS", 20),
+    dailyOperations: envInt("FREE_DAILY_OPERATIONS", 3),
     showAds: true,
     batchProcessing: false,
   },

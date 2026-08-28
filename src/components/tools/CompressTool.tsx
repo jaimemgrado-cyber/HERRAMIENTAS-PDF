@@ -5,9 +5,11 @@ import UploadZone from "@/components/UploadZone";
 import ProgressBar from "@/components/ProgressBar";
 import DownloadButton from "@/components/DownloadButton";
 import ErrorMessage from "@/components/ErrorMessage";
+import UsageStatus from "@/components/UsageStatus";
 import { compressPdf, type CompressionLevel } from "@/lib/pdf/compress";
 import { validatePdfFile, friendlyErrorMessage } from "@/lib/validation";
 import { PLAN_LIMITS } from "@/lib/plan-limits";
+import { useUsageLimit } from "@/lib/useUsageLimit";
 
 const LEVELS: { id: CompressionLevel; label: string }[] = [
   { id: "low", label: "Ligera" },
@@ -21,6 +23,7 @@ export default function CompressTool() {
   const [processing, setProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<{ blob: Blob; originalSize: number } | null>(null);
+  const usage = useUsageLimit();
 
   const maxSizeMB = PLAN_LIMITS.free.maxFileSizeMB;
 
@@ -38,18 +41,30 @@ export default function CompressTool() {
   };
 
   const handleCompress = async () => {
+    if (processing) return;
     if (!file) return;
+
+    if (!usage.checkCanProceed()) {
+      setError(
+        `Has alcanzado tus ${usage.limit} operaciones gratuitas de hoy. Puedes volver mañana o actualizar a PDF Pro.`
+      );
+      return;
+    }
+
     setProcessing(true);
     setError(null);
     try {
       const blob = await compressPdf(file, level);
       setResult({ blob, originalSize: file.size });
+      usage.consume();
     } catch (err) {
       setError(friendlyErrorMessage(err));
     } finally {
       setProcessing(false);
     }
   };
+
+  const isBlocked = usage.hydrated && usage.isLimitReached;
 
   return (
     <div>
@@ -81,14 +96,24 @@ export default function CompressTool() {
             </div>
           </fieldset>
 
-          <button
-            type="button"
-            onClick={handleCompress}
-            disabled={processing}
-            className="mt-5 rounded-full bg-ink px-6 py-3 text-sm font-semibold text-white hover:bg-accent disabled:opacity-50"
-          >
-            Comprimir PDF
-          </button>
+          {!isBlocked && (
+            <button
+              type="button"
+              onClick={handleCompress}
+              disabled={processing}
+              className="mt-5 rounded-full bg-ink px-6 py-3 text-sm font-semibold text-white hover:bg-accent disabled:opacity-50"
+            >
+              Comprimir PDF
+            </button>
+          )}
+
+          <UsageStatus
+            hydrated={usage.hydrated}
+            used={usage.used}
+            remaining={usage.remaining}
+            limit={usage.limit}
+            isLimitReached={usage.isLimitReached}
+          />
         </div>
       )}
 

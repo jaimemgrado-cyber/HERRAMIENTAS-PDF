@@ -21,7 +21,7 @@ export default function TermsPage() {
         <h2>1. Objeto</h2>
         <p>
           Estas condiciones regulan el uso del sitio web y las herramientas ofrecidas por
-          [EMPRESA / NOMBRE DEL TITULAR] (en adelante, "PDF Tools").
+          [EMPRESA / NOMBRE DEL TITULAR] (en adelante, &quot;PDF Tools&quot;).
         </p>
 
         <h2>2. Uso del servicio</h2>
@@ -67,7 +67,7 @@ export default function TermsPage() {
 
         <h2>7. Responsabilidad</h2>
         <p>
-          El servicio se presta "tal cual". No garantizamos que el resultado de cada herramienta
+          El servicio se presta &quot;tal cual&quot;. No garantizamos que el resultado de cada herramienta
           sea perfecto en todos los casos (por ejemplo, la compresión puede variar según el
           contenido del archivo). No somos responsables de los daños derivados de un uso indebido
           del servicio.

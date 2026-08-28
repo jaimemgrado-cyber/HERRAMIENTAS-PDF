@@ -6,15 +6,18 @@ import FileList from "@/components/FileList";
 import ProgressBar from "@/components/ProgressBar";
 import DownloadButton from "@/components/DownloadButton";
 import ErrorMessage from "@/components/ErrorMessage";
+import UsageStatus from "@/components/UsageStatus";
 import { imagesToPdf, type ImageType } from "@/lib/pdf/imageToPdf";
 import { validateImageFile, friendlyErrorMessage } from "@/lib/validation";
 import { PLAN_LIMITS } from "@/lib/plan-limits";
+import { useUsageLimit } from "@/lib/useUsageLimit";
 
 export default function ImageToPdfTool({ type }: { type: ImageType }) {
   const [files, setFiles] = useState<File[]>([]);
   const [processing, setProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<Blob | null>(null);
+  const usage = useUsageLimit();
 
   const maxSizeMB = PLAN_LIMITS.free.maxFileSizeMB;
   const accept = type === "jpg" ? "image/jpeg" : "image/png";
@@ -44,21 +47,35 @@ export default function ImageToPdfTool({ type }: { type: ImageType }) {
   };
 
   const handleConvert = async () => {
+    if (processing) return;
+
     if (files.length === 0) {
       setError(`Selecciona al menos una imagen ${type.toUpperCase()}.`);
       return;
     }
+
+    if (!usage.checkCanProceed()) {
+      setError(
+        `Has alcanzado tus ${usage.limit} operaciones gratuitas de hoy. Puedes volver mañana o actualizar a PDF Pro.`
+      );
+      return;
+    }
+
     setProcessing(true);
     setError(null);
     try {
       const blob = await imagesToPdf(files, type);
       setResult(blob);
+      usage.consume();
     } catch (err) {
       setError(friendlyErrorMessage(err));
     } finally {
       setProcessing(false);
     }
   };
+
+  const showAction = files.length > 0 && !result;
+  const isBlocked = usage.hydrated && usage.isLimitReached;
 
   return (
     <div>
@@ -73,7 +90,7 @@ export default function ImageToPdfTool({ type }: { type: ImageType }) {
 
       {error && <ErrorMessage message={error} />}
 
-      {files.length > 0 && !result && (
+      {showAction && !isBlocked && (
         <button
           type="button"
           onClick={handleConvert}
@@ -82,6 +99,16 @@ export default function ImageToPdfTool({ type }: { type: ImageType }) {
         >
           Convertir a PDF
         </button>
+      )}
+
+      {showAction && (
+        <UsageStatus
+          hydrated={usage.hydrated}
+          used={usage.used}
+          remaining={usage.remaining}
+          limit={usage.limit}
+          isLimitReached={usage.isLimitReached}
+        />
       )}
 
       {processing && <ProgressBar label="Generando tu PDF..." />}

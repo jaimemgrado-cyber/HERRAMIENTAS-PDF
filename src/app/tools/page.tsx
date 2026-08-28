@@ -14,7 +14,7 @@ export default function ToolsPage() {
       <Breadcrumbs items={[{ label: "Inicio", href: "/" }, { label: "Herramientas", href: "/tools" }]} />
       <h1 className="font-display text-3xl font-semibold text-ink">Herramientas PDF</h1>
       <p className="mt-2 max-w-2xl text-ink-soft">
-        Elige la herramienta que necesitas. Las marcadas como "Próximamente" están en desarrollo.
+        Elige la herramienta que necesitas. Las marcadas como &quot;Próximamente&quot; están en desarrollo.
       </p>
       <div className="mt-10">
         <ToolGrid />
