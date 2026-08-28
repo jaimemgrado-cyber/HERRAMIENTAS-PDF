@@ -31,10 +31,51 @@ export const runtime = "nodejs";
  * reintente) si no es así.
  */
 
-function planFromStripeStatus(
-  status: Stripe.Subscription.Status
-): "free" | "pro" {
+function planFromStripeStatus(status: Stripe.Subscription.Status): "free" | "pro" {
   return status === "active" || status === "trialing" ? "pro" : "free";
+}
+
+/**
+ * Obtiene `current_period_end` de forma segura.
+ *
+ * Según la versión de la API de Stripe y el tipo de suscripción, este
+ * campo puede venir en `subscription.current_period_end` o, en algunos
+ * eventos, solo dentro de `subscription.items.data[0].current_period_end`.
+ * Si ninguno de los dos existe o no es un número válido, devolvemos
+ * `null` en vez de arriesgarnos a `new Date(...).toISOString()` con un
+ * valor inválido (eso lanza `RangeError: Invalid time value`, que no
+ * está capturado dentro de esta función y tumbaba todo el webhook).
+ */
+function resolveCurrentPeriodEnd(
+  subscription: Stripe.Subscription
+): string | null {
+  const fromSubscription = subscription.current_period_end;
+
+  const firstItem = subscription.items?.data?.[0] as
+    | (Stripe.SubscriptionItem & { current_period_end?: number })
+    | undefined;
+
+  const fromFirstItem = firstItem?.current_period_end;
+
+  const candidate =
+    typeof fromSubscription === "number"
+      ? fromSubscription
+      : fromFirstItem;
+
+  if (
+    typeof candidate !== "number" ||
+    !Number.isFinite(candidate)
+  ) {
+    return null;
+  }
+
+  const date = new Date(candidate * 1000);
+
+  if (Number.isNaN(date.getTime())) {
+    return null;
+  }
+
+  return date.toISOString();
 }
 
 /** Resultado de intentar averiguar a qué perfil de Supabase pertenece una suscripción. */
@@ -45,7 +86,10 @@ interface ResolvedUser {
 
 async function findUserId(
   admin: ReturnType<typeof createSupabaseAdminClient>,
-  params: { userIdFromMetadata?: string | null; customerId: string }
+  params: {
+    userIdFromMetadata?: string | null;
+    customerId: string;
+  }
 ): Promise<ResolvedUser | null> {
   if (params.userIdFromMetadata) {
     return {
@@ -156,17 +200,20 @@ async function syncSubscription(
 
   const plan = planFromStripeStatus(subscription.status);
 
-  const currentPeriodEnd = new Date(
-    subscription.current_period_end * 1000
-  ).toISOString();
+  const currentPeriodEnd =
+    resolveCurrentPeriodEnd(subscription);
 
-  const ok = await updateProfileVerified(admin, resolved.userId, {
-    plan,
-    stripe_customer_id: customerId,
-    stripe_subscription_id: subscription.id,
-    subscription_status: subscription.status,
-    current_period_end: currentPeriodEnd,
-  });
+  const ok = await updateProfileVerified(
+    admin,
+    resolved.userId,
+    {
+      plan,
+      stripe_customer_id: customerId,
+      stripe_subscription_id: subscription.id,
+      subscription_status: subscription.status,
+      current_period_end: currentPeriodEnd,
+    }
+  );
 
   if (!ok) {
     // eslint-disable-next-line no-console
@@ -200,14 +247,19 @@ async function markSubscriptionDeleted(
 
   if (!resolved) return false;
 
-  return updateProfileVerified(admin, resolved.userId, {
-    plan: "free",
-    subscription_status: "canceled",
-  });
+  return updateProfileVerified(
+    admin,
+    resolved.userId,
+    {
+      plan: "free",
+      subscription_status: "canceled",
+    }
+  );
 }
 
 export async function POST(req: NextRequest) {
-  const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+  const webhookSecret =
+    process.env.STRIPE_WEBHOOK_SECRET;
 
   if (!webhookSecret) {
     return NextResponse.json(
@@ -216,7 +268,8 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const signature = req.headers.get("stripe-signature");
+  const signature =
+    req.headers.get("stripe-signature");
 
   if (!signature) {
     return NextResponse.json(
@@ -239,7 +292,10 @@ export async function POST(req: NextRequest) {
     );
   } catch (err) {
     // eslint-disable-next-line no-console
-    console.error("[stripe:webhook] Firma inválida", err);
+    console.error(
+      "[stripe:webhook] Firma inválida",
+      err
+    );
 
     return NextResponse.json(
       { error: "Firma inválida." },
@@ -267,9 +323,12 @@ export async function POST(req: NextRequest) {
             : checkoutSession.subscription.id;
 
         const subscription =
-          await stripe.subscriptions.retrieve(subscriptionId);
+          await stripe.subscriptions.retrieve(
+            subscriptionId
+          );
 
-        const ok = await syncSubscription(subscription);
+        const ok =
+          await syncSubscription(subscription);
 
         if (!ok) {
           return NextResponse.json(
@@ -289,7 +348,8 @@ export async function POST(req: NextRequest) {
         const subscription =
           event.data.object as Stripe.Subscription;
 
-        const ok = await syncSubscription(subscription);
+        const ok =
+          await syncSubscription(subscription);
 
         if (!ok) {
           return NextResponse.json(
@@ -308,7 +368,10 @@ export async function POST(req: NextRequest) {
         const subscription =
           event.data.object as Stripe.Subscription;
 
-        const ok = await markSubscriptionDeleted(subscription);
+        const ok =
+          await markSubscriptionDeleted(
+            subscription
+          );
 
         if (!ok) {
           return NextResponse.json(
@@ -330,7 +393,8 @@ export async function POST(req: NextRequest) {
       }
 
       case "invoice.payment_failed": {
-        const invoice = event.data.object as Stripe.Invoice;
+        const invoice =
+          event.data.object as Stripe.Invoice;
 
         const customerId =
           typeof invoice.customer === "string"
@@ -338,11 +402,13 @@ export async function POST(req: NextRequest) {
             : invoice.customer?.id;
 
         if (customerId) {
-          const admin = createSupabaseAdminClient();
+          const admin =
+            createSupabaseAdminClient();
 
-          const resolved = await findUserId(admin, {
-            customerId,
-          });
+          const resolved =
+            await findUserId(admin, {
+              customerId,
+            });
 
           if (resolved) {
             // No degradamos el plan aquí directamente: Stripe también
@@ -379,5 +445,7 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  return NextResponse.json({ received: true });
+  return NextResponse.json({
+    received: true,
+  });
 }
