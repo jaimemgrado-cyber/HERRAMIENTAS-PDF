@@ -36,8 +36,8 @@ Documenta aquí los proveedores reales que uses, para reflejarlos en la polític
 de cookies:
 
 - [ ] Proveedor de hosting/despliegue (p. ej. Vercel) — **REQUIERE INFORMACIÓN DEL PROPIETARIO**
-- [ ] Proveedor de base de datos (p. ej. Neon, Supabase, Railway) — **REQUIERE INFORMACIÓN DEL
-      PROPIETARIO**
+- [ ] Proveedor de base de datos y autenticación: Supabase (ya en uso) — confirmar que la
+      región del proyecto de Supabase y su política de retención de datos son adecuadas.
 - [ ] Proveedor de pagos: Stripe (ya integrado)
 - [ ] Proveedor de email transaccional (si se activa) — **REQUIERE INFORMACIÓN DEL PROPIETARIO**
 - [ ] Proveedor de analítica (si se activa) — **REQUIERE INFORMACIÓN DEL PROPIETARIO**

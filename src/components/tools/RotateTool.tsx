@@ -12,6 +12,7 @@ import { parsePageRanges } from "@/lib/pageRanges";
 import { validatePdfFile, friendlyErrorMessage } from "@/lib/validation";
 import { PLAN_LIMITS } from "@/lib/plan-limits";
 import { useUsageLimit } from "@/lib/useUsageLimit";
+import { LOGIN_REQUIRED_MESSAGE, limitReachedMessage } from "@/lib/usage-limit";
 
 const ANGLES: RotationAngle[] = [90, 180, 270];
 
@@ -48,25 +49,27 @@ export default function RotateTool() {
     if (processing) return;
     if (!file) return;
 
-    if (!usage.checkCanProceed()) {
-      setError(
-        `Has alcanzado tus ${usage.limit} operaciones gratuitas de hoy. Puedes volver mañana o actualizar a PDF Pro.`
-      );
+    // Validamos la selección de páginas ANTES de consumir la operación,
+    // para no gastar cuota si el usuario ha escrito un rango vacío/inválido.
+    const pages = applyToAll ? undefined : parsePageRanges(pagesInput, totalPages ?? undefined);
+    if (!applyToAll && (!pages || pages.length === 0)) {
+      setError("Indica al menos una página válida.");
       return;
     }
 
     setProcessing(true);
     setError(null);
+
+    const usageResult = await usage.consume();
+    if (!usageResult.allowed) {
+      setError(usageResult.authenticated ? limitReachedMessage(usageResult.limit) : LOGIN_REQUIRED_MESSAGE);
+      setProcessing(false);
+      return;
+    }
+
     try {
-      const pages = applyToAll ? undefined : parsePageRanges(pagesInput, totalPages ?? undefined);
-      if (!applyToAll && (!pages || pages.length === 0)) {
-        setError("Indica al menos una página válida.");
-        setProcessing(false);
-        return;
-      }
       const blob = await rotatePdf(file, angle, pages);
       setResult(blob);
-      usage.consume();
     } catch (err) {
       setError(friendlyErrorMessage(err));
     } finally {
@@ -74,7 +77,7 @@ export default function RotateTool() {
     }
   };
 
-  const isBlocked = usage.hydrated && usage.isLimitReached;
+  const isBlocked = usage.hydrated && (!usage.authenticated || usage.isLimitReached);
 
   return (
     <div>
@@ -147,6 +150,7 @@ export default function RotateTool() {
 
           <UsageStatus
             hydrated={usage.hydrated}
+            authenticated={usage.authenticated}
             used={usage.used}
             remaining={usage.remaining}
             limit={usage.limit}

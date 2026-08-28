@@ -10,6 +10,7 @@ import { compressPdf, type CompressionLevel } from "@/lib/pdf/compress";
 import { validatePdfFile, friendlyErrorMessage } from "@/lib/validation";
 import { PLAN_LIMITS } from "@/lib/plan-limits";
 import { useUsageLimit } from "@/lib/useUsageLimit";
+import { LOGIN_REQUIRED_MESSAGE, limitReachedMessage } from "@/lib/usage-limit";
 
 const LEVELS: { id: CompressionLevel; label: string }[] = [
   { id: "low", label: "Ligera" },
@@ -44,19 +45,19 @@ export default function CompressTool() {
     if (processing) return;
     if (!file) return;
 
-    if (!usage.checkCanProceed()) {
-      setError(
-        `Has alcanzado tus ${usage.limit} operaciones gratuitas de hoy. Puedes volver mañana o actualizar a PDF Pro.`
-      );
+    setProcessing(true);
+    setError(null);
+
+    const usageResult = await usage.consume();
+    if (!usageResult.allowed) {
+      setError(usageResult.authenticated ? limitReachedMessage(usageResult.limit) : LOGIN_REQUIRED_MESSAGE);
+      setProcessing(false);
       return;
     }
 
-    setProcessing(true);
-    setError(null);
     try {
       const blob = await compressPdf(file, level);
       setResult({ blob, originalSize: file.size });
-      usage.consume();
     } catch (err) {
       setError(friendlyErrorMessage(err));
     } finally {
@@ -64,7 +65,7 @@ export default function CompressTool() {
     }
   };
 
-  const isBlocked = usage.hydrated && usage.isLimitReached;
+  const isBlocked = usage.hydrated && (!usage.authenticated || usage.isLimitReached);
 
   return (
     <div>
@@ -109,6 +110,7 @@ export default function CompressTool() {
 
           <UsageStatus
             hydrated={usage.hydrated}
+            authenticated={usage.authenticated}
             used={usage.used}
             remaining={usage.remaining}
             limit={usage.limit}

@@ -11,6 +11,7 @@ import { mergePdfs } from "@/lib/pdf/merge";
 import { validatePdfFile, friendlyErrorMessage } from "@/lib/validation";
 import { PLAN_LIMITS } from "@/lib/plan-limits";
 import { useUsageLimit } from "@/lib/useUsageLimit";
+import { LOGIN_REQUIRED_MESSAGE, limitReachedMessage } from "@/lib/usage-limit";
 
 export default function MergeTool() {
   const [files, setFiles] = useState<File[]>([]);
@@ -47,8 +48,7 @@ export default function MergeTool() {
   };
 
   const handleMerge = async () => {
-    // Guarda contra doble clic / doble ejecución: si ya hay un
-    // procesamiento en curso, ignoramos por completo la llamada.
+    // Guarda contra doble clic / doble ejecución.
     if (processing) return;
 
     if (files.length < 2) {
@@ -56,19 +56,22 @@ export default function MergeTool() {
       return;
     }
 
-    if (!usage.checkCanProceed()) {
-      setError(
-        `Has alcanzado tus ${usage.limit} operaciones gratuitas de hoy. Puedes volver mañana o actualizar a PDF Pro.`
-      );
+    setProcessing(true);
+    setError(null);
+
+    // El límite se comprueba Y se consume en el servidor, de forma
+    // atómica, ANTES de procesar. Es la única fuente de verdad: nunca nos
+    // fiamos de un estado calculado en el navegador.
+    const usageResult = await usage.consume();
+    if (!usageResult.allowed) {
+      setError(usageResult.authenticated ? limitReachedMessage(usageResult.limit) : LOGIN_REQUIRED_MESSAGE);
+      setProcessing(false);
       return;
     }
 
-    setProcessing(true);
-    setError(null);
     try {
       const blob = await mergePdfs(files);
       setResult(blob);
-      usage.consume();
     } catch (err) {
       setError(friendlyErrorMessage(err));
     } finally {
@@ -77,7 +80,7 @@ export default function MergeTool() {
   };
 
   const showAction = files.length >= 2 && !result;
-  const isBlocked = usage.hydrated && usage.isLimitReached;
+  const isBlocked = usage.hydrated && (!usage.authenticated || usage.isLimitReached);
 
   return (
     <div>
@@ -107,6 +110,7 @@ export default function MergeTool() {
       {showAction && (
         <UsageStatus
           hydrated={usage.hydrated}
+          authenticated={usage.authenticated}
           used={usage.used}
           remaining={usage.remaining}
           limit={usage.limit}

@@ -1,22 +1,22 @@
 # PDF Tools
 
 Plataforma de herramientas PDF construida con Next.js 14 (App Router), TypeScript y Tailwind
-CSS, lista para desplegarse en Vercel. Preparada para monetización con Google AdSense y
-suscripción PDF Pro mediante Stripe Checkout.
+CSS, lista para desplegarse en Vercel. Cuentas de usuario con Supabase Auth, límite de uso
+diario verificado en servidor, y suscripción PDF Pro mediante Stripe Checkout.
 
 ## ⚠️ Nota sobre la verificación del build
 
 Este proyecto se ha generado y revisado en un entorno **sin acceso a red** (no se puede
-contactar con el registro de npm). Por tanto:
+contactar con el registro de npm ni con Supabase/Stripe). Por tanto:
 
-- **No ha sido posible ejecutar `npm install` ni `npm run build` en el entorno donde se generó
-  este código.** No se afirma un resultado de build que no se ha podido comprobar realmente.
-- En su lugar, se ha hecho una revisión manual exhaustiva: todos los imports (`@/...` y
-  relativos) se han verificado uno por uno contra el sistema de archivos real, se ha comprobado
-  que cada componente que usa hooks de React o manejadores de eventos tiene la directiva
-  `"use client"`, que cada ruta `/tools/<slug>` referencia un slug que existe en
-  `src/lib/tools-config.ts`, y que no queda ningún import roto ni ninguna clave con forma de
-  secreto real en el repositorio.
+- **No ha sido posible ejecutar `npm install` ni `npm run build`** en el entorno donde se
+  escribió este código. No se afirma un resultado de build que no se ha podido comprobar
+  realmente.
+- Sí se ha hecho una revisión manual exhaustiva: todos los imports (`@/...` y relativos) se han
+  verificado uno por uno contra el sistema de archivos real, que cada componente con hooks/
+  eventos tiene `"use client"`, que `src/lib/supabase/admin.ts` (service role) solo lo importa
+  el webhook de Stripe, y que ningún componente cliente importa el cliente de servidor de
+  Supabase.
 - **Antes de desplegar, ejecuta tú mismo:**
 
   ```bash
@@ -24,22 +24,23 @@ contactar con el registro de npm). Por tanto:
   npm run build
   ```
 
-  Si tu versión de Node o npm difiere sensiblemente de la usada aquí (Node ≥ 18.18), o si alguna
-  versión menor de una dependencia ha cambiado desde que se escribió este código, corrige
-  cualquier error de tipos que pueda aparecer siguiendo el mensaje del compilador — la
-  arquitectura y la lógica de negocio no deberían necesitar cambios.
+  y aplica la migración SQL (ver más abajo) antes de probar login/registro/límites, o fallarán
+  con errores de tablas inexistentes.
 
 ## Qué es este proyecto
 
-Una plataforma tipo iLovePDF/Smallpdf con diseño propio. Todas las herramientas prioritarias
-procesan los archivos **en el navegador del usuario** (con `pdf-lib` y `pdf.js`), por lo que los
-PDF del usuario no se suben a ningún servidor para estas operaciones.
+Una plataforma tipo iLovePDF/Smallpdf con diseño propio. Las 10 herramientas procesan los
+archivos **en el navegador del usuario** (con `pdf-lib` y `pdf.js`) — los PDF nunca se suben a
+un servidor para esas operaciones.
 
-Para mantener el número de dependencias (y por tanto el riesgo de build) al mínimo, **esta
-versión no incluye cuentas de usuario ni base de datos**. El plan Pro se contrata directamente
-mediante Stripe Checkout (Stripe recoge el email del cliente en su propio formulario alojado).
-Ver la sección [Próximos pasos](#próximos-pasos-fase-2--cuentas-de-usuario) para cómo añadir
-cuentas más adelante sin rehacer la arquitectura.
+Por encima de eso, hay un sistema real de cuentas:
+
+- **Supabase Auth** gestiona el registro/login con email y contraseña.
+- Cada usuario tiene una fila en `profiles` con su plan (`free`/`pro`).
+- El límite de **3 operaciones/día (free) o 1000/día (pro)** se comprueba y se incrementa
+  **en el servidor**, de forma atómica, nunca en el navegador.
+- **Stripe** gestiona el cobro de la suscripción Pro; su webhook es la única fuente de verdad
+  que actualiza el plan del usuario en la base de datos.
 
 ## Herramientas disponibles
 
@@ -56,67 +57,118 @@ cuentas más adelante sin rehacer la arquitectura.
 | Extraer páginas | `/tools/extract-pages` |
 | Ordenar páginas | `/tools/reorder-pages` |
 
-Todas están completamente funcionales: seleccionar/arrastrar archivo, validar, procesar y
-descargar el resultado.
+Cada una exige sesión iniciada para procesar (el límite se aplica por cuenta, no por navegador).
+Se puede subir/previsualizar el archivo sin sesión, pero el botón de procesar queda sustituido
+por un aviso para iniciar sesión o registrarse hasta que hay usuario autenticado.
 
 ## Páginas
 
 `/`, `/tools` (listado), las 10 herramientas de arriba, `/pricing`, `/about`, `/contact`,
-`/legal`, `/privacy`, `/cookies`, `/terms`, `/success`, `/cancel`.
+`/legal`, `/privacy`, `/cookies`, `/terms`, `/login`, `/register`, `/success`, `/cancel`.
 
 ## Arquitectura
 
 ```
 src/
   app/
-    tools/<slug>/       Una página por herramienta (SEO individual + UI funcional)
-    api/stripe/         checkout (crea sesión) y webhook (verifica firma)
-    api/contact/        Formulario de contacto (con honeypot + rate limiting básico)
-  components/           UI reutilizable
-    tools/               Componente cliente de cada herramienta (lógica de interacción)
+    tools/<slug>/         Una página por herramienta (SEO individual + UI funcional)
+    login/, register/     Páginas de autenticación
+    auth/callback/        Intercambia el código de confirmación de email por una sesión
+    api/usage/status/     GET  — snapshot de uso actual, sin consumir
+    api/usage/consume/    POST — comprueba el límite y lo incrementa de forma atómica
+    api/stripe/checkout/  POST — crea la sesión de Stripe Checkout (exige sesión)
+    api/stripe/webhook/   POST — única fuente de verdad que actualiza el plan del usuario
+    api/auth/signout/     POST — cierra sesión
+    api/contact/          Formulario de contacto (honeypot + rate limiting básico)
+  components/
+    tools/                 Componente cliente de cada herramienta
+    Header.tsx              Server Component: muestra sesión/plan o login/registro
   lib/
-    pdf/                Procesamiento PDF real, 100% client-side
-    tools-config.ts     Fuente única de verdad de herramientas + textos SEO
-    plan-limits.ts       Fuente única de verdad de límites FREE/PRO
-    stripe.ts            Cliente de Stripe (solo servidor)
-    validation.ts         Validación de archivos por contenido real (magic bytes)
+    pdf/                  Procesamiento PDF real, 100% client-side
+    supabase/
+      client.ts             Cliente de navegador (Client Components)
+      server.ts              Cliente de servidor (Server Components/Route Handlers)
+      admin.ts                 Cliente service_role — SOLO lo importa el webhook
+      middleware.ts             Refresco de sesión (usado por src/middleware.ts)
+    usage-limit.ts          Wrappers fetch sobre /api/usage/* (sin lógica de negocio)
+    useUsageLimit.ts          Hook de React reutilizado por las 10 herramientas
+    tools-config.ts         Fuente única de verdad de herramientas + textos SEO
+    plan-limits.ts            Fuente única de verdad de límites FREE/PRO
+    stripe.ts                  Cliente de Stripe (solo servidor)
+supabase/migrations/0001_init.sql   Migración SQL — tablas, RLS y funciones RPC
 ```
 
 - **UI** → `src/components/`
 - **Páginas y rutas** → `src/app/`
 - **Lógica de negocio / procesamiento de archivos** → `src/lib/pdf/`
+- **Autenticación** → `src/lib/supabase/*`, `src/middleware.ts`, `/login`, `/register`
+- **Límite de uso** → `src/app/api/usage/*` + función SQL `consume_operation`
 - **Pagos** → `src/lib/stripe.ts`, `src/app/api/stripe/*`
 - **Configuración** → variables de entorno + `src/lib/tools-config.ts` / `plan-limits.ts`
 - **SEO** → metadata por página, `src/app/sitemap.ts`, `src/app/robots.ts`
 - **Páginas legales** → `src/app/{privacy,cookies,terms,legal}/page.tsx`
 
-### Por qué procesamiento client-side
+### Cómo funciona el límite diario (y por qué es seguro)
 
-Las 10 herramientas usan [`pdf-lib`](https://github.com/Hopding/pdf-lib) y
-[`pdf.js`](https://mozilla.github.io/pdf.js/) directamente en el navegador:
+1. Al cargar una herramienta, el cliente llama a `GET /api/usage/status` para mostrar "Te
+   quedan N operaciones hoy" (o el aviso de iniciar sesión). Es solo lectura.
+2. Al pulsar "Procesar", el cliente llama a `POST /api/usage/consume` **antes** de ejecutar el
+   procesamiento real. Esa ruta llama a la función SQL `consume_operation`, que:
+   - lee el plan del usuario en `profiles.plan` (nunca se envía el plan desde el cliente),
+   - bloquea la fila de uso del día (`FOR UPDATE`) para que dos peticiones simultáneas no puedan
+     colarse ambas por debajo del límite,
+   - si ya alcanzó el límite, devuelve `allowed: false` sin tocar el contador,
+   - si no, incrementa el contador y devuelve `allowed: true`.
+3. Solo si `allowed` es `true` se ejecuta el procesamiento PDF en el navegador.
 
-- El archivo del usuario nunca sale de su dispositivo para estas operaciones.
-- Elimina de raíz una categoría entera de riesgos de seguridad (almacenamiento temporal,
-  limpieza de archivos, acceso cruzado entre usuarios) para estas herramientas.
-- Menor coste de infraestructura.
+**Trade-off explícito:** como el procesamiento en sí ocurre en el navegador (por privacidad, el
+archivo nunca se sube), el servidor no puede saber si terminó bien o mal — así que lo que se
+cuenta es el *intento* de procesar, no el resultado. Es el mismo compromiso que usan la mayoría
+de herramientas freemium client-side; queda documentado aquí y en el propio código
+(`src/app/api/usage/consume/route.ts`) en vez de ocultarlo.
 
-**Límite conocido:** sin un motor de servidor (p. ej. Ghostscript), la compresión de PDF
-(`src/lib/pdf/compress.ts`) no puede re-comprimir agresivamente imágenes incrustadas; solo
-optimiza la estructura interna del documento. Esto está documentado en el propio código y en la
-página de la herramienta, sin prometer una reducción de tamaño que no se puede garantizar.
+El "día" se calcula en UTC (`(now() at time zone 'utc')::date` en la función SQL) porque no se
+almacena la zona horaria del usuario. Se reinicia solo porque cada día es una fila distinta en
+`usage_daily`; no hace falta ningún job de limpieza.
+
+### Cómo funciona la suscripción Pro (y por qué es segura)
+
+1. El usuario pulsa "Hazte Pro" en `/pricing` → `POST /api/stripe/checkout` (exige sesión).
+2. Esa ruta crea (o reutiliza) un Stripe Customer y lo asocia a `profiles.stripe_customer_id`
+   mediante la función RPC `set_stripe_customer_id` — no hace falta la service_role key aquí,
+   solo la sesión del propio usuario (la función comprueba `auth.uid()` por dentro).
+3. Stripe redirige a su Checkout hospedado; nosotros nunca vemos datos de tarjeta.
+4. Cuando el pago se confirma, Stripe llama a `POST /api/stripe/webhook`, que verifica la firma
+   y — usando el cliente **service_role** (el único sitio del proyecto que lo usa) — actualiza
+   `profiles.plan` según el estado real de la suscripción: `'pro'` solo si Stripe dice
+   `active`/`trialing`; cualquier otro estado (cancelada, impago, incompleta...) → `'free'`.
+5. La página `/success` es solo un mensaje de cortesía: **nunca** concede acceso Pro por sí
+   misma. El plan real siempre se lee de `profiles.plan`, escrito exclusivamente por el webhook.
 
 ## Instalación
 
-Requisitos: Node.js ≥ 18.18, npm.
+Requisitos: Node.js ≥ 18.18, npm, un proyecto de Supabase y una cuenta de Stripe (modo test).
 
 ```bash
 npm install
 cp .env.example .env.local
 ```
 
-Edita `.env.local` con tus propios valores. Para desarrollo, basta con dejar las variables de
-Stripe vacías: la web funciona igualmente, y el botón "Hazte Pro" mostrará un error controlado
-en vez de romper la aplicación.
+Edita `.env.local` con tus propios valores (ver la sección de variables más abajo).
+
+## Aplicar la migración de base de datos (Supabase)
+
+1. Abre tu proyecto en [supabase.com](https://supabase.com) → **SQL Editor** → *New query*.
+2. Copia y pega el contenido completo de
+   [`supabase/migrations/0001_init.sql`](./supabase/migrations/0001_init.sql) y pulsa *Run*.
+3. Esto crea las tablas `profiles` y `usage_daily`, activa Row Level Security, crea el trigger
+   que genera automáticamente un perfil al registrarse, y las funciones `consume_operation` y
+   `set_stripe_customer_id`.
+4. En **Authentication → Providers**, confirma que el proveedor **Email** está activado. Decide
+   si quieres exigir confirmación por email (recomendado en producción) — el registro
+   (`RegisterForm.tsx`) ya contempla ambos casos.
+5. En **Authentication → URL Configuration**, añade `{NEXT_PUBLIC_APP_URL}/auth/callback` a las
+   Redirect URLs (y la URL de producción cuando la tengas).
 
 ## Ejecutar en local
 
@@ -124,25 +176,28 @@ en vez de romper la aplicación.
 npm run dev
 ```
 
-Abre http://localhost:3000.
+Abre http://localhost:3000. Regístrate en `/register` para poder usar cualquier herramienta.
 
 ## Desplegar en Vercel
 
 1. Sube el contenido de este repositorio a GitHub/GitLab/Bitbucket.
 2. Impórtalo en [vercel.com/new](https://vercel.com/new).
-3. Configura las variables de `.env.example` en Project Settings → Environment Variables.
-4. Despliega (Vercel ejecuta `npm run build` automáticamente, con acceso a red completo).
+3. Configura las variables de `.env.example` en Project Settings → Environment Variables
+   (incluida `SUPABASE_SERVICE_ROLE_KEY`, que es nueva — ver más abajo).
+4. Despliega.
+5. Añade la URL de producción a las Redirect URLs de Supabase (paso 5 de la sección anterior).
+6. Crea el endpoint de webhook de Stripe apuntando a tu dominio de producción (ver más abajo).
 
 ## Configurar Stripe en modo test
 
-1. Crea una cuenta en [stripe.com](https://stripe.com) y activa el **modo test**.
-2. **Productos** → crea "PDF Pro" con un precio recurrente mensual (p. ej. 4,99 €).
+1. Cuenta en [stripe.com](https://stripe.com), **modo test** activado.
+2. **Productos** → crea "PDF Pro" con un precio recurrente mensual (4,99 €).
 3. Copia el **Price ID** (`price_...`) a `STRIPE_PRO_PRICE_ID`.
-4. En **Desarrolladores → Claves de API**, copia `pk_test_...` y `sk_test_...` a
-   `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` y `STRIPE_SECRET_KEY`.
-5. Prueba el botón "Hazte Pro" en `/pricing` con una
-   [tarjeta de prueba](https://stripe.com/docs/testing) (`4242 4242 4242 4242`, cualquier fecha
-   futura, cualquier CVC). **Nunca uses una tarjeta real en modo test.**
+4. Prueba "Hazte Pro" en `/pricing` (con sesión iniciada) usando una
+   [tarjeta de prueba](https://stripe.com/docs/testing) (`4242 4242 4242 4242`, fecha futura,
+   CVC cualquiera). **Nunca uses una tarjeta real en modo test.**
+5. Comprueba en Supabase (tabla `profiles`) que `plan` pasa a `'pro'` tras el pago, y que vuelve
+   a `'free'` si cancelas la suscripción desde el Dashboard de Stripe.
 
 ## Configurar el webhook de Stripe
 
@@ -155,93 +210,72 @@ stripe listen --forward-to localhost:3000/api/stripe/webhook
 
 Copia el `whsec_...` que te da la CLI a `STRIPE_WEBHOOK_SECRET`.
 
-En producción, crea un endpoint de webhook en el Dashboard de Stripe apuntando a
-`https://<tu-dominio>/api/stripe/webhook`, suscrito a: `checkout.session.completed`,
-`customer.subscription.created`, `customer.subscription.updated`,
-`customer.subscription.deleted`, `invoice.paid`, `invoice.payment_failed`. El endpoint ya
-verifica la firma; por ahora solo registra el evento (ver siguiente sección para conectarlo a
-una base de datos real).
-
-## Próximos pasos (fase 2: cuentas de usuario)
-
-Esta versión no incluye login ni base de datos. Para añadir cuentas más adelante:
-
-1. Añade `next-auth` (o el proveedor de auth que prefieras) y una base de datos (Prisma +
-   Postgres es una combinación habitual).
-2. En `src/app/api/stripe/checkout/route.ts`, asocia la sesión de Checkout al usuario
-   autenticado (`client_reference_id` / `metadata`) y crea/reutiliza un `Stripe Customer`.
-3. En `src/app/api/stripe/webhook/route.ts`, sustituye el `console.info` por la escritura real
-   en base de datos del estado de la suscripción (plan, estado, fecha de renovación).
-4. Crea una función `getUserPlan(userId)` que consulte esa tabla y úsala en servidor para decidir
-   si el usuario ve anuncios (`AdSlot`) o tiene acceso a funciones Pro — **nunca** confíes en un
-   valor de "premium" calculado en el cliente.
-
-Las variables `DATABASE_URL`, `AUTH_SECRET` y `NEXTAUTH_URL` ya están documentadas (comentadas)
-en `.env.example` para cuando llegue este momento.
+En producción, crea un endpoint apuntando a `https://<tu-dominio>/api/stripe/webhook`, suscrito
+a: `checkout.session.completed`, `customer.subscription.created`,
+`customer.subscription.updated`, `customer.subscription.deleted`, `invoice.paid`,
+`invoice.payment_failed`.
 
 ## Cómo añadir una nueva herramienta
 
 1. Añade una entrada en `src/lib/tools-config.ts` (slug, categoría, textos SEO, FAQs, pasos).
 2. Crea la función de procesamiento en `src/lib/pdf/<nombre>.ts`.
 3. Crea el componente de interacción en `src/components/tools/<Nombre>Tool.tsx`, reutilizando
-   `UploadZone`, `FileList`, `ProgressBar`, `DownloadButton`, `ErrorMessage`.
-4. Crea `src/app/tools/<slug>/page.tsx` usando `ToolPageShell` (copia una página existente como
-   plantilla) — el sitemap se actualiza automáticamente porque recorre `TOOLS`.
+   `UploadZone`, `FileList`, `ProgressBar`, `DownloadButton`, `ErrorMessage`, `UsageStatus`, y
+   el hook `useUsageLimit()` — llama a `await usage.consume()` justo antes de procesar y solo
+   continúa si `allowed` es `true` (copia el patrón de cualquier Tool existente).
+4. Crea `src/app/tools/<slug>/page.tsx` usando `ToolPageShell` — el sitemap se actualiza solo.
 
 ## Cómo cambiar precios
 
-El precio se gestiona en Stripe, no en el código: crea un nuevo Price en el Dashboard de Stripe,
-actualiza `STRIPE_PRO_PRICE_ID`, y opcionalmente ajusta el texto `PRO_PRICE_DISPLAY` en
-`src/lib/plan-limits.ts` (es solo el texto mostrado en la UI; el cobro real siempre lo determina
-Stripe).
+Crea un nuevo Price en el Dashboard de Stripe, actualiza `STRIPE_PRO_PRICE_ID`, y opcionalmente
+ajusta el texto `PRO_PRICE_DISPLAY` en `src/lib/plan-limits.ts` (es solo el texto mostrado en la
+UI; el cobro real siempre lo determina Stripe).
 
 ## Cómo cambiar límites del plan
 
 Edita `FREE_MAX_FILE_SIZE_MB`, `FREE_DAILY_OPERATIONS`, `PRO_MAX_FILE_SIZE_MB`,
-`PRO_DAILY_OPERATIONS` en tus variables de entorno. Todo el código lee estos valores desde
-`src/lib/plan-limits.ts`.
+`PRO_DAILY_OPERATIONS` en tus variables de entorno. `src/lib/plan-limits.ts` sigue siendo la
+única fuente de verdad de estos números; `/api/usage/consume` se los pasa a la función SQL en
+cada llamada, así que un cambio de variable de entorno se aplica sin tocar la base de datos.
 
-## Cómo cambiar el nombre de la marca
+## Cómo cambiar el nombre de la marca / el dominio / activar publicidad
 
-1. Cambia `NEXT_PUBLIC_BRAND_NAME` en tus variables de entorno.
-2. Sustituye el favicon/logo en `public/` y el icono "PT" en `src/components/Header.tsx`.
-3. Revisa las páginas legales, que usan placeholders como `[EMPRESA / NOMBRE DEL TITULAR]`.
-
-## Cómo cambiar el dominio
-
-Cambia `NEXT_PUBLIC_APP_URL` en producción. El SEO (canonical, sitemap, Open Graph) se genera
-dinámicamente a partir de esta variable.
-
-## Cómo activar publicidad más adelante
-
-1. Solicita Google AdSense para tu dominio ya en producción.
-2. Añade tu client-id a `NEXT_PUBLIC_ADSENSE_CLIENT_ID`. Los espacios (`AdSlot`) ya están
-   reservados y se ocultan automáticamente mientras la variable esté vacía.
-3. Actualiza la Content-Security-Policy en `next.config.js` para permitir los dominios de
-   AdSense.
+Sin cambios respecto a antes: `NEXT_PUBLIC_BRAND_NAME`, `NEXT_PUBLIC_APP_URL` y
+`NEXT_PUBLIC_ADSENSE_CLIENT_ID` respectivamente (ver comentarios en `.env.example`).
 
 ## Seguridad
 
-- Ningún secreto real está incluido en este repositorio; `.env.example` solo contiene
-  placeholders con forma claramente no válida (`REPLACE_WITH_...`), no cadenas con el prefijo
-  `sk_test_`/`pk_test_`/`whsec_` seguidas de caracteres, para evitar cualquier falso positivo de
-  escáneres de secretos de GitHub.
+- **Row Level Security** activado en `profiles` y `usage_daily`, con únicamente política de
+  `SELECT` sobre la fila propia — ningún usuario puede escribir esas tablas directamente desde
+  el cliente. Toda escritura pasa por funciones `SECURITY DEFINER` (que comprueban `auth.uid()`
+  por dentro) o por el webhook con la service_role key.
+- **`SUPABASE_SERVICE_ROLE_KEY`** solo se importa desde `src/lib/supabase/admin.ts`, y ese
+  módulo solo lo usa `src/app/api/stripe/webhook/route.ts`. Nunca tiene el prefijo
+  `NEXT_PUBLIC_`, así que Next.js nunca la incluye en el bundle del cliente.
+- El plan del usuario **siempre** se determina en servidor (`profiles.plan`, actualizado solo
+  por el webhook); ningún componente cliente decide si alguien es Pro.
+- El límite diario se comprueba **e incrementa** en la misma transacción SQL (`FOR UPDATE`),
+  evitando que un doble clic o varias pestañas consuman más operaciones de las debidas.
+- Ningún secreto real está incluido en este repositorio; `.env.example` usa placeholders con
+  forma claramente no válida (`REPLACE_WITH_...`).
 - `.gitignore` excluye `.env`, `.env.local` y cualquier `.env.*.local`.
 - Cabeceras de seguridad HTTP + Content-Security-Policy en `next.config.js`.
-- Validación de archivos por contenido real (magic bytes), no solo por extensión
-  (`src/lib/validation.ts`).
+- Validación de archivos por contenido real (magic bytes), no solo por extensión.
 - El webhook de Stripe verifica la firma de cada petición antes de procesarla.
 
 ## Qué NO está listo para producción
 
-- Cuentas de usuario / login (ver "Próximos pasos" arriba).
 - Activación real de pagos: Stripe sigue en modo test hasta que actives claves `live`.
+- Confirmación por email: revisa en Supabase si quieres exigirla antes de lanzar (afecta al
+  flujo de `/register`).
 - Páginas legales con placeholders (`[EMPRESA / NOMBRE DEL TITULAR]`, `[NIF/CIF]`, etc.) — ver
   [`LEGAL_CHECKLIST.md`](./LEGAL_CHECKLIST.md).
-- Envío real de emails transaccionales.
+- Recuperación de contraseña / gestión de cuenta (cambiar email, borrar cuenta): no
+  implementadas todavía; Supabase Auth las soporta si se añaden las páginas correspondientes.
+- Envío real de emails transaccionales propios (aviso de pago fallido, etc. — Supabase ya envía
+  los suyos de confirmación/recuperación si se configuran).
 - Google AdSense (requiere aprobación de Google con el dominio real).
-- Herramientas que requerirían servidor (Word/Excel↔PDF, OCR, firma electrónica): no incluidas
-  en esta versión.
+- Herramientas que requerirían servidor (Word/Excel↔PDF, OCR, firma electrónica): no incluidas.
 
 ## Dependencias principales
 
@@ -250,8 +284,9 @@ dinámicamente a partir de esta variable.
 | `next`, `react` | Framework y UI |
 | `tailwindcss` | Estilos |
 | `pdf-lib` | Unir, dividir, rotar, comprimir, extraer/eliminar/ordenar páginas, imágenes→PDF |
-| `pdfjs-dist` | Renderizar páginas PDF a imagen (PDF→JPG). Fijado en la versión `3.11.174` a propósito: sigue publicando un worker clásico (no ES module), necesario para que `next build`/webpack no falle al empaquetarlo (ver comentario en `src/lib/pdf/pdfToImage.ts` y `scripts/copy-pdf-worker.js`). |
+| `pdfjs-dist` | Renderizar páginas PDF a imagen (PDF→JPG). Fijado en `3.11.174` a propósito: sigue publicando un worker clásico (no ES module) — ver comentario en `src/lib/pdf/pdfToImage.ts`. |
 | `jszip` | Empaquetar varias imágenes en un ZIP descargable |
 | `stripe` | Checkout y verificación de webhooks |
+| `@supabase/ssr`, `@supabase/supabase-js` | Autenticación y base de datos, con cookies compatibles con Next.js App Router |
 | `zod` | Validación de datos en la API de contacto |
 | `clsx` | Utilidad de clases condicionales |

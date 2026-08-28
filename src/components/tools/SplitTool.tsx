@@ -11,6 +11,7 @@ import { splitPdf, type SplitRange } from "@/lib/pdf/split";
 import { validatePdfFile, friendlyErrorMessage } from "@/lib/validation";
 import { PLAN_LIMITS } from "@/lib/plan-limits";
 import { useUsageLimit } from "@/lib/useUsageLimit";
+import { LOGIN_REQUIRED_MESSAGE, limitReachedMessage } from "@/lib/usage-limit";
 
 export default function SplitTool() {
   const [file, setFile] = useState<File | null>(null);
@@ -63,15 +64,16 @@ export default function SplitTool() {
     if (processing) return;
     if (!file) return;
 
-    if (!usage.checkCanProceed()) {
-      setError(
-        `Has alcanzado tus ${usage.limit} operaciones gratuitas de hoy. Puedes volver mañana o actualizar a PDF Pro.`
-      );
+    setProcessing(true);
+    setError(null);
+
+    const usageResult = await usage.consume();
+    if (!usageResult.allowed) {
+      setError(usageResult.authenticated ? limitReachedMessage(usageResult.limit) : LOGIN_REQUIRED_MESSAGE);
+      setProcessing(false);
       return;
     }
 
-    setProcessing(true);
-    setError(null);
     try {
       const ranges = parseRanges();
       const out = await splitPdf(file, ranges);
@@ -79,7 +81,6 @@ export default function SplitTool() {
         setError("No se ha generado ningún archivo. Revisa el rango de páginas indicado.");
       } else {
         setResults(out);
-        usage.consume();
       }
     } catch (err) {
       setError(friendlyErrorMessage(err));
@@ -88,7 +89,7 @@ export default function SplitTool() {
     }
   };
 
-  const isBlocked = usage.hydrated && usage.isLimitReached;
+  const isBlocked = usage.hydrated && (!usage.authenticated || usage.isLimitReached);
 
   return (
     <div>
@@ -128,6 +129,7 @@ export default function SplitTool() {
           {!results && (
             <UsageStatus
               hydrated={usage.hydrated}
+              authenticated={usage.authenticated}
               used={usage.used}
               remaining={usage.remaining}
               limit={usage.limit}

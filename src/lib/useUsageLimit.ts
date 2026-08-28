@@ -1,53 +1,60 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { getUsageSnapshot, recordSuccessfulOperation, type UsageSnapshot } from "@/lib/usage-limit";
+import {
+  fetchUsageStatus,
+  consumeOperation as consumeOperationApi,
+  type UsageSnapshot,
+  type ConsumeResult,
+} from "@/lib/usage-limit";
 
-const INITIAL: UsageSnapshot = { used: 0, remaining: Infinity, limit: Infinity, isLimitReached: false };
+const INITIAL: UsageSnapshot = {
+  authenticated: false,
+  used: 0,
+  remaining: 0,
+  limit: 0,
+  isLimitReached: false,
+};
 
 /**
- * Hook reutilizable para las 10 herramientas PDF. Centraliza:
- *   - leer cuántas operaciones gratuitas quedan hoy;
- *   - comprobar el límite justo antes de procesar (`checkCanProceed`);
- *   - registrar el consumo justo después de un procesamiento con éxito
- *     (`consume`).
+ * Hook reutilizable por las 10 herramientas PDF. Sustituye por completo el
+ * antiguo contador de localStorage: aquí no se decide ni se guarda nada,
+ * solo se refleja el estado que devuelve el servidor.
  *
- * `hydrated` evita mostrar un número potencialmente incorrecto durante el
- * primer render en servidor (donde no existe localStorage): la UI que
- * consuma este hook debe esperar a `hydrated === true` antes de mostrar el
- * contador o el aviso de límite alcanzado.
+ * - Al montar, consulta GET /api/usage/status para poder mostrar "Te
+ *   quedan N operaciones" (o el aviso de iniciar sesión) sin que el
+ *   usuario tenga que hacer nada todavía.
+ * - `consume()` llama a POST /api/usage/consume, que comprueba el límite
+ *   Y lo incrementa de forma atómica en el servidor. Debe llamarse justo
+ *   antes de lanzar el procesamiento real de cada herramienta, y su
+ *   resultado (`allowed`) es lo único que decide si se puede continuar.
  */
 export function useUsageLimit() {
   const [snapshot, setSnapshot] = useState<UsageSnapshot>(INITIAL);
   const [hydrated, setHydrated] = useState(false);
 
+  const refresh = useCallback(async () => {
+    const status = await fetchUsageStatus();
+    setSnapshot(status);
+    return status;
+  }, []);
+
   useEffect(() => {
-    setSnapshot(getUsageSnapshot());
+    let cancelled = false;
+    refresh().finally(() => {
+      if (!cancelled) setHydrated(true);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [refresh]);
+
+  const consume = useCallback(async (): Promise<ConsumeResult> => {
+    const result = await consumeOperationApi();
+    setSnapshot(result);
     setHydrated(true);
+    return result;
   }, []);
 
-  /**
-   * Vuelve a leer el estado real (por si ha cambiado en otra pestaña o ha
-   * pasado la medianoche) y devuelve si se puede iniciar una nueva
-   * operación. Debe llamarse SIEMPRE justo antes de lanzar el
-   * procesamiento de una herramienta.
-   */
-  const checkCanProceed = useCallback((): boolean => {
-    const current = getUsageSnapshot();
-    setSnapshot(current);
-    return !current.isLimitReached;
-  }, []);
-
-  /**
-   * Registra una operación completada con éxito. Debe llamarse SOLO tras
-   * un procesamiento correcto, nunca al seleccionar/subir un archivo ni si
-   * el procesamiento ha fallado.
-   */
-  const consume = useCallback((): UsageSnapshot => {
-    const updated = recordSuccessfulOperation();
-    setSnapshot(updated);
-    return updated;
-  }, []);
-
-  return { ...snapshot, hydrated, checkCanProceed, consume };
+  return { ...snapshot, hydrated, refresh, consume };
 }

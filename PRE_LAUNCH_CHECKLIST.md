@@ -32,10 +32,13 @@ Repasa esta lista completa antes de anunciar el lanzamiento en producción.
 - [ ] Validación de archivos por contenido real (magic bytes) revisada para cada herramienta.
 - [ ] Límites de tamaño de archivo aplicados y probados en el cliente.
 - [ ] Verificación de firma del webhook de Stripe probada con un evento real (no solo en local).
-- [ ] Si se añade un sistema de cuentas (ver README → "Próximos pasos"): comprobar que el
-      acceso PRO se determina siempre en servidor a partir de la suscripción real en base de
-      datos, y que un usuario FREE no puede obtener acceso PRO manipulando el cliente
-      (localStorage, cookies no firmadas, DevTools).
+- [ ] Confirmado que `profiles`/`usage_daily` tienen RLS activado y que un usuario autenticado
+      no puede leer ni escribir filas de otro usuario (probar con dos cuentas distintas).
+- [ ] Confirmado que `SUPABASE_SERVICE_ROLE_KEY` no aparece en ningún archivo del repositorio ni
+      se importa fuera de `src/lib/supabase/admin.ts` / el webhook de Stripe.
+- [ ] Comprobado manualmente que un usuario FREE no puede obtener acceso PRO manipulando el
+      cliente (DevTools, interceptando la respuesta de `/api/usage/status`, etc.): el plan
+      siempre debe leerse de `profiles.plan` en servidor.
 
 ## LEGAL
 
@@ -49,11 +52,12 @@ Repasa esta lista completa antes de anunciar el lanzamiento en producción.
 
 ## PAGOS
 
-- [ ] Flujo de Checkout probado en Stripe **modo test**: pago correcto y pago cancelado.
+- [ ] Flujo de Checkout probado en Stripe **modo test** con un usuario real registrado: pago
+      correcto, pago cancelado, cancelación de suscripción, renovación, acceso PRO concedido y
+      acceso PRO revocado tras cancelación/impago (comprobando `profiles.plan` en Supabase).
 - [ ] Webhook probado en producción con el endpoint real (no solo con la Stripe CLI en local).
-- [ ] Si se añade un sistema de cuentas: probar también cancelación, renovación, acceso PRO
-      concedido y acceso PRO revocado tras cancelación/impago, y configurar el Customer Portal
-      de Stripe (Dashboard → Settings → Billing → Customer Portal).
+- [ ] Customer Portal de Stripe configurado (Dashboard → Settings → Billing → Customer Portal)
+      si se quiere permitir a los usuarios gestionar/cancelar su suscripción ellos mismos.
 - [ ] Antes de aceptar pagos reales: cambiar las claves de test por las claves `live`
       correspondientes y volver a configurar el webhook de producción con el secreto `live`.
 - [ ] Facturación e impuestos configurados en Stripe (Stripe Tax u otra solución) si aplica.
