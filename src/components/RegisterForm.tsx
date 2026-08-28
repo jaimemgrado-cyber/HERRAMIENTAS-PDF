@@ -31,11 +31,9 @@ export default function RegisterForm() {
     setLoading(false);
 
     if (signUpError) {
-      setError(
-        signUpError.message.toLowerCase().includes("already registered")
-          ? "Ya existe una cuenta con ese email."
-          : "No se ha podido crear la cuenta. Inténtalo de nuevo."
-      );
+      // TEMPORAL: mostrar el mensaje real de Supabase para diagnosticar
+      // el error de registro. Revertir a mensaje genérico tras resolverlo.
+      setError(signUpError.message);
       return;
     }
 
