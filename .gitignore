@@ -1,0 +1,34 @@
+# Dependencias
+/node_modules
+
+# Next.js
+/.next/
+/out/
+
+# Producción
+/build
+
+# Variables de entorno con secretos reales — NUNCA subir esto al repositorio
+.env
+.env.local
+.env.*.local
+
+# Worker de pdf.js copiado automáticamente por scripts/copy-pdf-worker.js
+# (postinstall) — se regenera en cada `npm install`, no hace falta commitear.
+/public/pdfjs/
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# Editor / OS
+.DS_Store
+*.pem
+.vscode/
+.idea/
+
+# TypeScript
+*.tsbuildinfo
+next-env.d.ts
