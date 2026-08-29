@@ -18,31 +18,53 @@ const sans = Inter({
   display: "swap",
 });
 
-const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+const appUrl =
+  process.env.NEXT_PUBLIC_APP_URL ?? "https://pdf-tools-nine-swart.vercel.app";
+
 const brandName = process.env.NEXT_PUBLIC_BRAND_NAME ?? "PDF Tools";
 
 export const metadata: Metadata = {
   metadataBase: new URL(appUrl),
+
   title: {
     default: `${brandName} — Herramientas PDF online gratis`,
     template: `%s | ${brandName}`,
   },
+
   description:
     "Une, divide, comprime y convierte tus archivos PDF online, gratis y sin instalar nada.",
+
+  alternates: {
+    canonical: "/",
+  },
+
   openGraph: {
     type: "website",
     locale: "es_ES",
     siteName: brandName,
+    title: `${brandName} — Herramientas PDF online gratis`,
+    description:
+      "Une, divide, comprime y convierte tus archivos PDF online, gratis y sin instalar nada.",
+    url: "/",
   },
+
   twitter: {
     card: "summary_large_image",
+    title: `${brandName} — Herramientas PDF online gratis`,
+    description:
+      "Une, divide, comprime y convierte tus archivos PDF online, gratis y sin instalar nada.",
   },
+
   icons: {
     icon: "/favicon.ico",
   },
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   return (
     <html lang="es" className={`${display.variable} ${sans.variable}`}>
       <body className="flex min-h-screen flex-col font-sans bg-paper text-ink antialiased">
@@ -52,11 +74,15 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         >
           Saltar al contenido
         </a>
+
         <Header />
+
         <main id="main-content" className="flex-1">
           {children}
         </main>
+
         <Footer />
+
         <CookieBanner />
       </body>
     </html>
