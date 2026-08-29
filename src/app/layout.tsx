@@ -20,28 +20,39 @@ const sans = Inter({
 });
 
 const appUrl =
-  process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+  process.env.NEXT_PUBLIC_APP_URL ??
+  "https://pdf-tools-nine-swart.vercel.app";
+
 const brandName =
   process.env.NEXT_PUBLIC_BRAND_NAME ?? "PDF Tools";
 
 export const metadata: Metadata = {
   metadataBase: new URL(appUrl),
+
   title: {
     default: `${brandName} — Herramientas PDF online gratis`,
     template: `%s | ${brandName}`,
   },
+
   description:
     "Une, divide, comprime y convierte tus archivos PDF online, gratis y sin instalar nada.",
+
   openGraph: {
     type: "website",
     locale: "es_ES",
     siteName: brandName,
   },
+
   twitter: {
     card: "summary_large_image",
   },
+
   icons: {
     icon: "/favicon.ico",
+  },
+
+  other: {
+    "google-adsense-account": "ca-pub-5422820182709667",
   },
 };
 
