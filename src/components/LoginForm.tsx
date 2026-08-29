@@ -19,9 +19,13 @@ export default function LoginForm() {
     const password = String(formData.get("password"));
 
     const supabase = createSupabaseBrowserClient();
-    const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
+    const { error: signInError } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
 
     setLoading(false);
+
     if (signInError) {
       setError("Email o contraseña incorrectos.");
       return;
@@ -46,10 +50,24 @@ export default function LoginForm() {
           className="mt-1 w-full rounded-lg border border-line px-3 py-2 text-sm focus:border-accent"
         />
       </div>
+
       <div>
-        <label htmlFor="password" className="block text-sm font-medium text-ink">
-          Contraseña
-        </label>
+        <div className="flex items-center justify-between">
+          <label
+            htmlFor="password"
+            className="block text-sm font-medium text-ink"
+          >
+            Contraseña
+          </label>
+
+          <a
+            href="/forgot-password"
+            className="text-xs font-medium text-accent hover:underline"
+          >
+            ¿Has olvidado tu contraseña?
+          </a>
+        </div>
+
         <input
           id="password"
           name="password"
