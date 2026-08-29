@@ -19,9 +19,11 @@ const sans = Inter({
 });
 
 const appUrl =
-  process.env.NEXT_PUBLIC_APP_URL ?? "https://pdf-tools-nine-swart.vercel.app";
+  process.env.NEXT_PUBLIC_APP_URL ??
+  "https://pdf-tools-nine-swart.vercel.app";
 
-const brandName = process.env.NEXT_PUBLIC_BRAND_NAME ?? "PDF Tools";
+const brandName =
+  process.env.NEXT_PUBLIC_BRAND_NAME ?? "PDF Tools";
 
 export const metadata: Metadata = {
   metadataBase: new URL(appUrl),
@@ -36,6 +38,10 @@ export const metadata: Metadata = {
 
   alternates: {
     canonical: "/",
+  },
+
+  verification: {
+    google: "5uhdB1e1ufSh3UdBy8zC56w5zHmp941j2htDhl9l2GM",
   },
 
   openGraph: {
@@ -66,7 +72,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="es" className={`${display.variable} ${sans.variable}`}>
+    <html
+      lang="es"
+      className={`${display.variable} ${sans.variable}`}
+    >
       <body className="flex min-h-screen flex-col font-sans bg-paper text-ink antialiased">
         <a
           href="#main-content"
