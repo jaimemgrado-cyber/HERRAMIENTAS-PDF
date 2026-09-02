@@ -2,34 +2,34 @@
 
 import { useState } from "react";
 
+const CONTACT_EMAIL = "support.digitaltools@gmail.com";
+
 export default function ContactForm() {
   const [status, setStatus] = useState<"idle" | "sending" | "sent" | "error">("idle");
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    setStatus("sending");
     const form = e.currentTarget;
     const data = Object.fromEntries(new FormData(form).entries());
 
-    try {
-      const res = await fetch("/api/contact", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
-      });
-      if (!res.ok) throw new Error("failed");
-      setStatus("sent");
-      form.reset();
-    } catch {
-      setStatus("error");
-    }
+    const subject = String(data.subject || "Consulta sobre PDF Tools");
+    const body = [
+      `Nombre: ${String(data.name || "")}`,
+      `Email: ${String(data.email || "")}`,
+      "",
+      String(data.message || ""),
+    ].join("\n");
+
+    const mailto = `mailto:${CONTACT_EMAIL}?subject=${encodeURIComponent(`[PDF Tools] ${subject}`)}&body=${encodeURIComponent(body)}`;
+    window.location.href = mailto;
+    setStatus("sent");
   };
 
   if (status === "sent") {
     return (
       <div className="rounded-xl2 border border-line bg-white p-6 text-center">
         <p className="font-medium text-ink">Gracias por escribirnos</p>
-        <p className="mt-1 text-sm text-ink-soft">Te responderemos lo antes posible.</p>
+        <p className="mt-1 text-sm text-ink-soft">Se abrirá tu aplicación de correo para enviar el mensaje a nuestro equipo de soporte.</p>
       </div>
     );
   }
