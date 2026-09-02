@@ -5,6 +5,7 @@ const CONTACT_EMAIL = "support.digitaltools@gmail.com";
 
 const COLUMNS = [
   { title: "Herramientas", links: [{ href: "/tools", label: "Todas las herramientas" }, { href: "/tools/compress-pdf", label: "Comprimir PDF" }, { href: "/tools/merge-pdf", label: "Unir PDF" }, { href: "/tools/split-pdf", label: "Dividir PDF" }] },
+  { title: "Recursos", links: [{ href: "/guides", label: "Guías PDF" }, { href: "/tools", label: "Herramientas" }] },
   { title: "Producto", links: [{ href: "/pricing", label: "Precios" }, { href: "/pricing", label: "PDF Pro" }, { href: "/about", label: "Sobre nosotros" }, { href: "/contact", label: "Contacto" }] },
   { title: "Legal", links: [{ href: "/legal", label: "Aviso legal" }, { href: "/privacy", label: "Privacidad" }, { href: "/cookies", label: "Cookies" }, { href: "/terms", label: "Términos" }] },
 ];
