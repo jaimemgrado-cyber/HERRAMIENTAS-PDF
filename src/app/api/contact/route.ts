@@ -51,7 +51,7 @@ export async function POST(req: NextRequest) {
   }
 
   const apiKey = process.env.RESEND_API_KEY;
-  const contactEmail = process.env.CONTACT_EMAIL;
+  const contactEmail = process.env.CONTACT_EMAIL ?? "support.digitaltools@gmail.com";
 
   if (!apiKey || !contactEmail) {
     console.error("[contact] Faltan variables de entorno de email.");

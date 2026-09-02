@@ -15,8 +15,7 @@ export default function PricingPage() {
       <Breadcrumbs items={[{ label: "Inicio", href: "/" }, { label: "Precios", href: "/pricing" }]} />
       <h1 className="font-display text-3xl font-semibold text-ink">Precios</h1>
       <p className="mt-2 max-w-2xl text-ink-soft">
-        Empieza gratis. Si necesitas archivos más grandes o quieres navegar sin anuncios, pásate a
-        Pro cuando quieras.
+        Empieza gratis y actualiza a Pro cuando necesites más capacidad y una experiencia sin anuncios.
       </p>
 
       <div className="mt-10 grid grid-cols-1 gap-6 md:grid-cols-2">

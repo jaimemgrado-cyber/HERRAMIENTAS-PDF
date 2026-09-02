@@ -4,21 +4,16 @@ import ToolGrid from "@/components/ToolGrid";
 
 export const metadata: Metadata = {
   title: "Todas las herramientas PDF",
-  description: "Explora todas las herramientas PDF disponibles: unir, dividir, comprimir, convertir y más.",
+  description: "Explora herramientas PDF para unir, dividir, comprimir, convertir y organizar documentos online.",
   alternates: { canonical: "/tools" },
 };
 
 export default function ToolsPage() {
   return (
-    <div className="mx-auto max-w-6xl px-4 py-12 sm:px-6">
+    <div className="mx-auto max-w-6xl px-4 py-12 sm:px-6 sm:py-16">
       <Breadcrumbs items={[{ label: "Inicio", href: "/" }, { label: "Herramientas", href: "/tools" }]} />
-      <h1 className="font-display text-3xl font-semibold text-ink">Herramientas PDF</h1>
-      <p className="mt-2 max-w-2xl text-ink-soft">
-        Elige la herramienta que necesitas. Las marcadas como &quot;Próximamente&quot; están en desarrollo.
-      </p>
-      <div className="mt-10">
-        <ToolGrid />
-      </div>
+      <div className="mt-6 max-w-3xl"><p className="text-xs font-semibold uppercase tracking-[0.15em] text-accent">Biblioteca PDF</p><h1 className="mt-2 font-display text-4xl font-semibold tracking-tight text-ink">Todas las herramientas PDF</h1><p className="mt-4 text-base leading-7 text-ink-soft">Herramientas para trabajar con documentos sin instalaciones. Elige una tarea y empieza directamente.</p></div>
+      <div className="mt-10"><ToolGrid /></div>
     </div>
   );
 }

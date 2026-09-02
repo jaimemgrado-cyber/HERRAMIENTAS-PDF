@@ -13,6 +13,13 @@ html {
 body {
   background-color: #faf9f9;
   color: #12213a;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+}
+
+::selection {
+  background: #f3dad3;
+  color: #12213a;
 }
 
 /* Foco visible y consistente para navegación por teclado (accesibilidad). */
