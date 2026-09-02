@@ -80,6 +80,18 @@ export default function UsageStatus({
   // "Te quedan 3 de 3" antes de que el usuario haya hecho nada.
   if (used === 0) return null;
 
+  if (remaining === 1) {
+    return (
+      <div className="mt-4 rounded-xl2 border border-accent/20 bg-accent-soft/30 p-4">
+        <p className="text-sm font-semibold text-ink">Te queda 1 operación gratuita hoy.</p>
+        <div className="mt-2 flex flex-wrap items-center justify-between gap-3">
+          <p className="text-xs leading-5 text-ink-soft">Con Pro puedes seguir trabajando sin este límite.</p>
+          <a href="/pricing" className="text-xs font-semibold text-accent hover:underline">Ver PDF Pro →</a>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <p className="mt-3 text-xs text-ink-soft">
       Te quedan {remaining} {remaining === 1 ? "operación gratuita" : "operaciones gratuitas"} hoy.

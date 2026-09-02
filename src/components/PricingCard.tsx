@@ -39,6 +39,10 @@ export default function PricingCard({
     try {
       const res = await fetch(checkoutEndpoint, { method: "POST" });
       const body = await res.json();
+      if (res.status === 401) {
+        window.location.href = "/login?next=/pricing";
+        return;
+      }
       if (!res.ok || !body.url) {
         throw new Error(body.error ?? "No se ha podido iniciar el pago.");
       }

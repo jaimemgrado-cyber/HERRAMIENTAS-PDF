@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 
-export default function LoginForm() {
+export default function LoginForm({ redirectTo = "/tools" }: { redirectTo?: string }) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -31,7 +31,7 @@ export default function LoginForm() {
       return;
     }
 
-    router.push("/tools");
+    router.push(redirectTo);
     router.refresh();
   };
 
