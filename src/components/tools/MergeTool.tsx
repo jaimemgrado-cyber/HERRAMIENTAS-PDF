@@ -109,6 +109,7 @@ export default function MergeTool() {
 
       {showAction && (
         <UsageStatus
+          plan={usage.plan}
           hydrated={usage.hydrated}
           authenticated={usage.authenticated}
           used={usage.used}

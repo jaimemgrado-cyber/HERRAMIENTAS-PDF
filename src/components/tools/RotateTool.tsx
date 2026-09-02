@@ -149,6 +149,7 @@ export default function RotateTool() {
           )}
 
           <UsageStatus
+          plan={usage.plan}
             hydrated={usage.hydrated}
             authenticated={usage.authenticated}
             used={usage.used}

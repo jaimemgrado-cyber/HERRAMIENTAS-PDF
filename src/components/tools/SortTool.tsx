@@ -113,6 +113,7 @@ export default function SortTool() {
           )}
 
           <UsageStatus
+          plan={usage.plan}
             hydrated={usage.hydrated}
             authenticated={usage.authenticated}
             used={usage.used}

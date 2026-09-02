@@ -111,6 +111,7 @@ export default function PageSelectionTool({ mode }: { mode: "delete" | "extract"
           )}
 
           <UsageStatus
+          plan={usage.plan}
             hydrated={usage.hydrated}
             authenticated={usage.authenticated}
             used={usage.used}

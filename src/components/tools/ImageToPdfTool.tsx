@@ -104,6 +104,7 @@ export default function ImageToPdfTool({ type }: { type: ImageType }) {
 
       {showAction && (
         <UsageStatus
+          plan={usage.plan}
           hydrated={usage.hydrated}
           authenticated={usage.authenticated}
           used={usage.used}

@@ -109,6 +109,7 @@ export default function CompressTool() {
           )}
 
           <UsageStatus
+          plan={usage.plan}
             hydrated={usage.hydrated}
             authenticated={usage.authenticated}
             used={usage.used}

@@ -82,6 +82,7 @@ export default function PdfToJpgTool() {
           )}
 
           <UsageStatus
+          plan={usage.plan}
             hydrated={usage.hydrated}
             authenticated={usage.authenticated}
             used={usage.used}
