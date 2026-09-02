@@ -25,21 +25,12 @@ export default function ContactPage() {
 
       <div className="mx-auto mt-10 max-w-xl rounded-[1.5rem] border border-line bg-white p-8 text-center shadow-card sm:p-10">
         <p className="text-xs font-semibold uppercase tracking-[0.14em] text-ink-soft">Email de soporte</p>
-        <a
-          href={`mailto:${CONTACT_EMAIL}`}
-          className="mt-4 block break-all text-xl font-semibold text-ink underline decoration-line underline-offset-4 hover:text-accent sm:text-2xl"
-        >
+        <p className="mt-4 break-all text-xl font-semibold text-ink sm:text-2xl">
           {CONTACT_EMAIL}
-        </a>
-        <p className="mt-4 text-sm leading-6 text-ink-soft">
-          Puedes copiar esta dirección o hacer clic en ella para abrir tu aplicación de correo y escribirnos.
         </p>
-        <a
-          href={`mailto:${CONTACT_EMAIL}?subject=Consulta%20sobre%20PDF%20Tools`}
-          className="mt-7 inline-flex rounded-full bg-ink px-6 py-3 text-sm font-semibold text-white hover:bg-accent"
-        >
-          Abrir correo
-        </a>
+        <p className="mt-4 text-sm leading-6 text-ink-soft">
+          Copia esta dirección y escríbenos desde tu servicio de correo.
+        </p>
       </div>
     </div>
   );
