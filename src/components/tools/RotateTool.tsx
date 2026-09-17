@@ -6,13 +6,10 @@ import UploadZone from "@/components/UploadZone";
 import ProgressBar from "@/components/ProgressBar";
 import DownloadButton from "@/components/DownloadButton";
 import ErrorMessage from "@/components/ErrorMessage";
-import UsageStatus from "@/components/UsageStatus";
 import { rotatePdf, type RotationAngle } from "@/lib/pdf/rotate";
 import { parsePageRanges } from "@/lib/pageRanges";
 import { validatePdfFile, friendlyErrorMessage } from "@/lib/validation";
-import { PLAN_LIMITS } from "@/lib/plan-limits";
-import { useUsageLimit } from "@/lib/useUsageLimit";
-import { LOGIN_REQUIRED_MESSAGE, limitReachedMessage } from "@/lib/usage-limit";
+import { MAX_FILE_SIZE_MB } from "@/lib/file-limits";
 
 const ANGLES: RotationAngle[] = [90, 180, 270];
 
@@ -25,9 +22,8 @@ export default function RotateTool() {
   const [processing, setProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<Blob | null>(null);
-  const usage = useUsageLimit();
 
-  const maxSizeMB = PLAN_LIMITS.free.maxFileSizeMB;
+  const maxSizeMB = MAX_FILE_SIZE_MB;
 
   const handleFile = async (files: File[]) => {
     const f = files[0];
@@ -49,8 +45,6 @@ export default function RotateTool() {
     if (processing) return;
     if (!file) return;
 
-    // Validamos la selección de páginas ANTES de consumir la operación,
-    // para no gastar cuota si el usuario ha escrito un rango vacío/inválido.
     const pages = applyToAll ? undefined : parsePageRanges(pagesInput, totalPages ?? undefined);
     if (!applyToAll && (!pages || pages.length === 0)) {
       setError("Indica al menos una página válida.");
@@ -59,13 +53,6 @@ export default function RotateTool() {
 
     setProcessing(true);
     setError(null);
-
-    const usageResult = await usage.consume();
-    if (!usageResult.allowed) {
-      setError(usageResult.authenticated ? limitReachedMessage(usageResult.limit) : LOGIN_REQUIRED_MESSAGE);
-      setProcessing(false);
-      return;
-    }
 
     try {
       const blob = await rotatePdf(file, angle, pages);
@@ -77,7 +64,6 @@ export default function RotateTool() {
     }
   };
 
-  const isBlocked = usage.hydrated && (!usage.authenticated || usage.isLimitReached);
 
   return (
     <div>
@@ -137,8 +123,7 @@ export default function RotateTool() {
             )}
           </div>
 
-          {!isBlocked && (
-            <button
+          <button
               type="button"
               onClick={handleRotate}
               disabled={processing}
@@ -146,17 +131,7 @@ export default function RotateTool() {
             >
               Rotar PDF
             </button>
-          )}
 
-          <UsageStatus
-          plan={usage.plan}
-            hydrated={usage.hydrated}
-            authenticated={usage.authenticated}
-            used={usage.used}
-            remaining={usage.remaining}
-            limit={usage.limit}
-            isLimitReached={usage.isLimitReached}
-          />
         </div>
       )}
 

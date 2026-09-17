@@ -6,21 +6,17 @@ import FileList from "@/components/FileList";
 import ProgressBar from "@/components/ProgressBar";
 import DownloadButton from "@/components/DownloadButton";
 import ErrorMessage from "@/components/ErrorMessage";
-import UsageStatus from "@/components/UsageStatus";
 import { imagesToPdf, type ImageType } from "@/lib/pdf/imageToPdf";
 import { validateImageFile, friendlyErrorMessage } from "@/lib/validation";
-import { PLAN_LIMITS } from "@/lib/plan-limits";
-import { useUsageLimit } from "@/lib/useUsageLimit";
-import { LOGIN_REQUIRED_MESSAGE, limitReachedMessage } from "@/lib/usage-limit";
+import { MAX_FILE_SIZE_MB } from "@/lib/file-limits";
 
 export default function ImageToPdfTool({ type }: { type: ImageType }) {
   const [files, setFiles] = useState<File[]>([]);
   const [processing, setProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<Blob | null>(null);
-  const usage = useUsageLimit();
 
-  const maxSizeMB = PLAN_LIMITS.free.maxFileSizeMB;
+  const maxSizeMB = MAX_FILE_SIZE_MB;
   const accept = type === "jpg" ? "image/jpeg" : "image/png";
 
   const addFiles = async (newFiles: File[]) => {
@@ -58,13 +54,6 @@ export default function ImageToPdfTool({ type }: { type: ImageType }) {
     setProcessing(true);
     setError(null);
 
-    const usageResult = await usage.consume();
-    if (!usageResult.allowed) {
-      setError(usageResult.authenticated ? limitReachedMessage(usageResult.limit) : LOGIN_REQUIRED_MESSAGE);
-      setProcessing(false);
-      return;
-    }
-
     try {
       const blob = await imagesToPdf(files, type);
       setResult(blob);
@@ -76,7 +65,6 @@ export default function ImageToPdfTool({ type }: { type: ImageType }) {
   };
 
   const showAction = files.length > 0 && !result;
-  const isBlocked = usage.hydrated && (!usage.authenticated || usage.isLimitReached);
 
   return (
     <div>
@@ -91,7 +79,7 @@ export default function ImageToPdfTool({ type }: { type: ImageType }) {
 
       {error && <ErrorMessage message={error} />}
 
-      {showAction && !isBlocked && (
+      {showAction && (
         <button
           type="button"
           onClick={handleConvert}
@@ -102,17 +90,6 @@ export default function ImageToPdfTool({ type }: { type: ImageType }) {
         </button>
       )}
 
-      {showAction && (
-        <UsageStatus
-          plan={usage.plan}
-          hydrated={usage.hydrated}
-          authenticated={usage.authenticated}
-          used={usage.used}
-          remaining={usage.remaining}
-          limit={usage.limit}
-          isLimitReached={usage.isLimitReached}
-        />
-      )}
 
       {processing && <ProgressBar label="Generando tu PDF..." />}
 

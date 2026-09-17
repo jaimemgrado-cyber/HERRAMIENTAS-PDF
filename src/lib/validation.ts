@@ -34,7 +34,7 @@ export async function validatePdfFile(file: File, maxSizeMB: number): Promise<Va
   if (file.size > maxSizeMB * 1024 * 1024) {
     return {
       valid: false,
-      error: `El archivo supera el límite de ${maxSizeMB} MB de tu plan actual.`,
+      error: `El archivo supera el límite técnico de ${maxSizeMB} MB.`,
     };
   }
   const bytes = await readMagicBytes(file, 5);
@@ -58,7 +58,7 @@ export async function validateImageFile(
   if (file.size > maxSizeMB * 1024 * 1024) {
     return {
       valid: false,
-      error: `El archivo supera el límite de ${maxSizeMB} MB de tu plan actual.`,
+      error: `El archivo supera el límite técnico de ${maxSizeMB} MB.`,
     };
   }
   const bytes = await readMagicBytes(file, 4);

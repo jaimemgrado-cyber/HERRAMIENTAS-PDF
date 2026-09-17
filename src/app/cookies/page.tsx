@@ -43,7 +43,7 @@ export default function CookiesPage() {
             <tr>
               <td>Necesarias</td>
               <td>
-                Recordar tu sesión y tus preferencias de cookies.
+                Recordar tus preferencias de cookies.
               </td>
               <td>No</td>
             </tr>

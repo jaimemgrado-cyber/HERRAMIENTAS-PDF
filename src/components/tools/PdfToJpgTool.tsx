@@ -5,21 +5,17 @@ import UploadZone from "@/components/UploadZone";
 import ProgressBar from "@/components/ProgressBar";
 import DownloadButton from "@/components/DownloadButton";
 import ErrorMessage from "@/components/ErrorMessage";
-import UsageStatus from "@/components/UsageStatus";
 import { pdfToJpgZip } from "@/lib/pdf/pdfToImage";
 import { validatePdfFile, friendlyErrorMessage } from "@/lib/validation";
-import { PLAN_LIMITS } from "@/lib/plan-limits";
-import { useUsageLimit } from "@/lib/useUsageLimit";
-import { LOGIN_REQUIRED_MESSAGE, limitReachedMessage } from "@/lib/usage-limit";
+import { MAX_FILE_SIZE_MB } from "@/lib/file-limits";
 
 export default function PdfToJpgTool() {
   const [file, setFile] = useState<File | null>(null);
   const [processing, setProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<Blob | null>(null);
-  const usage = useUsageLimit();
 
-  const maxSizeMB = PLAN_LIMITS.free.maxFileSizeMB;
+  const maxSizeMB = MAX_FILE_SIZE_MB;
 
   const handleFile = async (files: File[]) => {
     const f = files[0];
@@ -41,13 +37,6 @@ export default function PdfToJpgTool() {
     setProcessing(true);
     setError(null);
 
-    const usageResult = await usage.consume();
-    if (!usageResult.allowed) {
-      setError(usageResult.authenticated ? limitReachedMessage(usageResult.limit) : LOGIN_REQUIRED_MESSAGE);
-      setProcessing(false);
-      return;
-    }
-
     try {
       const blob = await pdfToJpgZip(file);
       setResult(blob);
@@ -58,7 +47,6 @@ export default function PdfToJpgTool() {
     }
   };
 
-  const isBlocked = usage.hydrated && (!usage.authenticated || usage.isLimitReached);
 
   return (
     <div>
@@ -70,8 +58,7 @@ export default function PdfToJpgTool() {
             <span className="font-medium text-ink">{file.name}</span>
           </p>
 
-          {!isBlocked && (
-            <button
+          <button
               type="button"
               onClick={handleConvert}
               disabled={processing}
@@ -79,17 +66,7 @@ export default function PdfToJpgTool() {
             >
               Convertir a JPG
             </button>
-          )}
 
-          <UsageStatus
-          plan={usage.plan}
-            hydrated={usage.hydrated}
-            authenticated={usage.authenticated}
-            used={usage.used}
-            remaining={usage.remaining}
-            limit={usage.limit}
-            isLimitReached={usage.isLimitReached}
-          />
         </div>
       )}
 

@@ -6,21 +6,17 @@ import FileList from "@/components/FileList";
 import ProgressBar from "@/components/ProgressBar";
 import DownloadButton from "@/components/DownloadButton";
 import ErrorMessage from "@/components/ErrorMessage";
-import UsageStatus from "@/components/UsageStatus";
 import { mergePdfs } from "@/lib/pdf/merge";
 import { validatePdfFile, friendlyErrorMessage } from "@/lib/validation";
-import { PLAN_LIMITS } from "@/lib/plan-limits";
-import { useUsageLimit } from "@/lib/useUsageLimit";
-import { LOGIN_REQUIRED_MESSAGE, limitReachedMessage } from "@/lib/usage-limit";
+import { MAX_FILE_SIZE_MB } from "@/lib/file-limits";
 
 export default function MergeTool() {
   const [files, setFiles] = useState<File[]>([]);
   const [processing, setProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<Blob | null>(null);
-  const usage = useUsageLimit();
 
-  const maxSizeMB = PLAN_LIMITS.free.maxFileSizeMB;
+  const maxSizeMB = MAX_FILE_SIZE_MB;
 
   const addFiles = async (newFiles: File[]) => {
     setError(null);
@@ -59,15 +55,7 @@ export default function MergeTool() {
     setProcessing(true);
     setError(null);
 
-    // El límite se comprueba Y se consume en el servidor, de forma
-    // atómica, ANTES de procesar. Es la única fuente de verdad: nunca nos
     // fiamos de un estado calculado en el navegador.
-    const usageResult = await usage.consume();
-    if (!usageResult.allowed) {
-      setError(usageResult.authenticated ? limitReachedMessage(usageResult.limit) : LOGIN_REQUIRED_MESSAGE);
-      setProcessing(false);
-      return;
-    }
 
     try {
       const blob = await mergePdfs(files);
@@ -80,7 +68,6 @@ export default function MergeTool() {
   };
 
   const showAction = files.length >= 2 && !result;
-  const isBlocked = usage.hydrated && (!usage.authenticated || usage.isLimitReached);
 
   return (
     <div>
@@ -96,7 +83,7 @@ export default function MergeTool() {
 
       {error && <ErrorMessage message={error} />}
 
-      {showAction && !isBlocked && (
+      {showAction && (
         <button
           type="button"
           onClick={handleMerge}
@@ -107,17 +94,6 @@ export default function MergeTool() {
         </button>
       )}
 
-      {showAction && (
-        <UsageStatus
-          plan={usage.plan}
-          hydrated={usage.hydrated}
-          authenticated={usage.authenticated}
-          used={usage.used}
-          remaining={usage.remaining}
-          limit={usage.limit}
-          isLimitReached={usage.isLimitReached}
-        />
-      )}
 
       {processing && <ProgressBar label="Uniendo tus archivos..." />}
 

@@ -46,14 +46,11 @@ export default function HomePage() {
                 <Link href="/tools" className="inline-flex items-center justify-center rounded-full bg-accent px-6 py-3.5 text-sm font-semibold text-white shadow-sm transition hover:-translate-y-0.5 hover:bg-accent/90">
                   Explorar herramientas <span className="ml-2" aria-hidden>→</span>
                 </Link>
-                <Link href="/pricing" className="inline-flex items-center justify-center rounded-full border border-line bg-white px-6 py-3.5 text-sm font-semibold text-ink transition hover:border-ink">
-                  Ver PDF Pro
-                </Link>
               </div>
               <div className="mt-7 flex flex-wrap gap-x-6 gap-y-2 text-xs font-medium text-ink-soft">
                 <span>✓ Procesamiento local</span>
                 <span>✓ Sin instalar software</span>
-                <span>✓ Plan gratuito</span>
+                <span>✓ 100% gratis</span>
               </div>
             </div>
 
@@ -94,7 +91,7 @@ export default function HomePage() {
           {[
             ["Privacidad", "Tus archivos se procesan localmente en las herramientas compatibles."],
             ["Sencillez", "Interfaz clara para completar una tarea y descargar el resultado."],
-            ["Más capacidad", "PDF Pro aumenta los límites y elimina la publicidad."],
+            ["Gratis", "Todas las herramientas están disponibles sin registro ni suscripción."],
           ].map(([title, text]) => (
             <div key={title} className="border-b border-line py-6 last:border-0 md:border-b-0 md:border-r md:px-7 md:first:pl-0 md:last:border-r-0 md:last:pr-0">
               <p className="text-sm font-semibold text-ink">{title}</p>
@@ -117,13 +114,6 @@ export default function HomePage() {
               <p className="mt-1.5 text-sm leading-6 text-ink-soft">{tool.shortDescription}</p>
             </Link>
           ))}
-        </div>
-      </section>
-
-      <section className="mx-auto max-w-6xl px-4 pb-16 sm:px-6 sm:pb-20">
-        <div className="rounded-[2rem] bg-ink p-7 text-white sm:p-10 lg:flex lg:items-center lg:justify-between lg:gap-10">
-          <div><p className="text-xs font-semibold uppercase tracking-[0.16em] text-accent-soft">PDF Pro</p><h2 className="mt-2 font-display text-3xl font-semibold">Más archivos. Menos límites.</h2><p className="mt-3 max-w-2xl text-sm leading-6 text-white/70">Trabaja con archivos de hasta 200 MB, hasta 1.000 operaciones al día y sin anuncios.</p></div>
-          <Link href="/pricing" className="mt-6 inline-flex shrink-0 rounded-full bg-white px-6 py-3 text-sm font-semibold text-ink transition hover:bg-paper lg:mt-0">Conocer Pro →</Link>
         </div>
       </section>
 

@@ -6,12 +6,9 @@ import UploadZone from "@/components/UploadZone";
 import ProgressBar from "@/components/ProgressBar";
 import DownloadButton from "@/components/DownloadButton";
 import ErrorMessage from "@/components/ErrorMessage";
-import UsageStatus from "@/components/UsageStatus";
 import { sortPages } from "@/lib/pdf/sortPages";
 import { validatePdfFile, friendlyErrorMessage } from "@/lib/validation";
-import { PLAN_LIMITS } from "@/lib/plan-limits";
-import { useUsageLimit } from "@/lib/useUsageLimit";
-import { LOGIN_REQUIRED_MESSAGE, limitReachedMessage } from "@/lib/usage-limit";
+import { MAX_FILE_SIZE_MB } from "@/lib/file-limits";
 
 export default function SortTool() {
   const [file, setFile] = useState<File | null>(null);
@@ -20,9 +17,8 @@ export default function SortTool() {
   const [processing, setProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<Blob | null>(null);
-  const usage = useUsageLimit();
 
-  const maxSizeMB = PLAN_LIMITS.free.maxFileSizeMB;
+  const maxSizeMB = MAX_FILE_SIZE_MB;
 
   const handleFile = async (files: File[]) => {
     const f = files[0];
@@ -58,13 +54,6 @@ export default function SortTool() {
     setProcessing(true);
     setError(null);
 
-    const usageResult = await usage.consume();
-    if (!usageResult.allowed) {
-      setError(usageResult.authenticated ? limitReachedMessage(usageResult.limit) : LOGIN_REQUIRED_MESSAGE);
-      setProcessing(false);
-      return;
-    }
-
     try {
       const blob = await sortPages(file, order);
       setResult(blob);
@@ -75,7 +64,6 @@ export default function SortTool() {
     }
   };
 
-  const isBlocked = usage.hydrated && (!usage.authenticated || usage.isLimitReached);
 
   return (
     <div>
@@ -101,8 +89,7 @@ export default function SortTool() {
             comas.
           </p>
 
-          {!isBlocked && (
-            <button
+          <button
               type="button"
               onClick={handleSort}
               disabled={processing}
@@ -110,17 +97,7 @@ export default function SortTool() {
             >
               Guardar orden
             </button>
-          )}
 
-          <UsageStatus
-          plan={usage.plan}
-            hydrated={usage.hydrated}
-            authenticated={usage.authenticated}
-            used={usage.used}
-            remaining={usage.remaining}
-            limit={usage.limit}
-            isLimitReached={usage.isLimitReached}
-          />
         </div>
       )}
 

@@ -5,12 +5,9 @@ import UploadZone from "@/components/UploadZone";
 import ProgressBar from "@/components/ProgressBar";
 import DownloadButton from "@/components/DownloadButton";
 import ErrorMessage from "@/components/ErrorMessage";
-import UsageStatus from "@/components/UsageStatus";
 import { compressPdf, type CompressionLevel } from "@/lib/pdf/compress";
 import { validatePdfFile, friendlyErrorMessage } from "@/lib/validation";
-import { PLAN_LIMITS } from "@/lib/plan-limits";
-import { useUsageLimit } from "@/lib/useUsageLimit";
-import { LOGIN_REQUIRED_MESSAGE, limitReachedMessage } from "@/lib/usage-limit";
+import { MAX_FILE_SIZE_MB } from "@/lib/file-limits";
 
 const LEVELS: { id: CompressionLevel; label: string }[] = [
   { id: "low", label: "Ligera" },
@@ -24,9 +21,8 @@ export default function CompressTool() {
   const [processing, setProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<{ blob: Blob; originalSize: number } | null>(null);
-  const usage = useUsageLimit();
 
-  const maxSizeMB = PLAN_LIMITS.free.maxFileSizeMB;
+  const maxSizeMB = MAX_FILE_SIZE_MB;
 
   const handleFile = async (files: File[]) => {
     const f = files[0];
@@ -48,13 +44,6 @@ export default function CompressTool() {
     setProcessing(true);
     setError(null);
 
-    const usageResult = await usage.consume();
-    if (!usageResult.allowed) {
-      setError(usageResult.authenticated ? limitReachedMessage(usageResult.limit) : LOGIN_REQUIRED_MESSAGE);
-      setProcessing(false);
-      return;
-    }
-
     try {
       const blob = await compressPdf(file, level);
       setResult({ blob, originalSize: file.size });
@@ -65,7 +54,6 @@ export default function CompressTool() {
     }
   };
 
-  const isBlocked = usage.hydrated && (!usage.authenticated || usage.isLimitReached);
 
   return (
     <div>
@@ -97,8 +85,7 @@ export default function CompressTool() {
             </div>
           </fieldset>
 
-          {!isBlocked && (
-            <button
+          <button
               type="button"
               onClick={handleCompress}
               disabled={processing}
@@ -106,17 +93,7 @@ export default function CompressTool() {
             >
               Comprimir PDF
             </button>
-          )}
 
-          <UsageStatus
-          plan={usage.plan}
-            hydrated={usage.hydrated}
-            authenticated={usage.authenticated}
-            used={usage.used}
-            remaining={usage.remaining}
-            limit={usage.limit}
-            isLimitReached={usage.isLimitReached}
-          />
         </div>
       )}
 

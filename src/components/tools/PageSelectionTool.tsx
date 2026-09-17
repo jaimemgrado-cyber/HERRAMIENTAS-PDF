@@ -6,14 +6,11 @@ import UploadZone from "@/components/UploadZone";
 import ProgressBar from "@/components/ProgressBar";
 import DownloadButton from "@/components/DownloadButton";
 import ErrorMessage from "@/components/ErrorMessage";
-import UsageStatus from "@/components/UsageStatus";
 import { deletePages } from "@/lib/pdf/deletePages";
 import { extractPages } from "@/lib/pdf/extractPages";
 import { parsePageRanges } from "@/lib/pageRanges";
 import { validatePdfFile, friendlyErrorMessage } from "@/lib/validation";
-import { PLAN_LIMITS } from "@/lib/plan-limits";
-import { useUsageLimit } from "@/lib/useUsageLimit";
-import { LOGIN_REQUIRED_MESSAGE, limitReachedMessage } from "@/lib/usage-limit";
+import { MAX_FILE_SIZE_MB } from "@/lib/file-limits";
 
 export default function PageSelectionTool({ mode }: { mode: "delete" | "extract" }) {
   const [file, setFile] = useState<File | null>(null);
@@ -22,9 +19,8 @@ export default function PageSelectionTool({ mode }: { mode: "delete" | "extract"
   const [processing, setProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<Blob | null>(null);
-  const usage = useUsageLimit();
 
-  const maxSizeMB = PLAN_LIMITS.free.maxFileSizeMB;
+  const maxSizeMB = MAX_FILE_SIZE_MB;
   const actionLabel = mode === "delete" ? "Eliminar páginas" : "Extraer páginas";
   const fieldLabel =
     mode === "delete" ? "Páginas a eliminar" : "Páginas a conservar";
@@ -58,13 +54,6 @@ export default function PageSelectionTool({ mode }: { mode: "delete" | "extract"
     setProcessing(true);
     setError(null);
 
-    const usageResult = await usage.consume();
-    if (!usageResult.allowed) {
-      setError(usageResult.authenticated ? limitReachedMessage(usageResult.limit) : LOGIN_REQUIRED_MESSAGE);
-      setProcessing(false);
-      return;
-    }
-
     try {
       const blob =
         mode === "delete" ? await deletePages(file, pages) : await extractPages(file, pages);
@@ -76,7 +65,6 @@ export default function PageSelectionTool({ mode }: { mode: "delete" | "extract"
     }
   };
 
-  const isBlocked = usage.hydrated && (!usage.authenticated || usage.isLimitReached);
 
   return (
     <div>
@@ -99,8 +87,7 @@ export default function PageSelectionTool({ mode }: { mode: "delete" | "extract"
             className="mt-2 w-full rounded-lg border border-line px-3 py-2 text-sm focus:border-accent"
           />
 
-          {!isBlocked && (
-            <button
+          <button
               type="button"
               onClick={handleRun}
               disabled={processing}
@@ -108,17 +95,7 @@ export default function PageSelectionTool({ mode }: { mode: "delete" | "extract"
             >
               {actionLabel}
             </button>
-          )}
 
-          <UsageStatus
-          plan={usage.plan}
-            hydrated={usage.hydrated}
-            authenticated={usage.authenticated}
-            used={usage.used}
-            remaining={usage.remaining}
-            limit={usage.limit}
-            isLimitReached={usage.isLimitReached}
-          />
         </div>
       )}
 

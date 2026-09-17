@@ -6,12 +6,9 @@ import UploadZone from "@/components/UploadZone";
 import ProgressBar from "@/components/ProgressBar";
 import DownloadButton from "@/components/DownloadButton";
 import ErrorMessage from "@/components/ErrorMessage";
-import UsageStatus from "@/components/UsageStatus";
 import { splitPdf, type SplitRange } from "@/lib/pdf/split";
 import { validatePdfFile, friendlyErrorMessage } from "@/lib/validation";
-import { PLAN_LIMITS } from "@/lib/plan-limits";
-import { useUsageLimit } from "@/lib/useUsageLimit";
-import { LOGIN_REQUIRED_MESSAGE, limitReachedMessage } from "@/lib/usage-limit";
+import { MAX_FILE_SIZE_MB } from "@/lib/file-limits";
 
 export default function SplitTool() {
   const [file, setFile] = useState<File | null>(null);
@@ -20,9 +17,8 @@ export default function SplitTool() {
   const [processing, setProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [results, setResults] = useState<{ name: string; blob: Blob }[] | null>(null);
-  const usage = useUsageLimit();
 
-  const maxSizeMB = PLAN_LIMITS.free.maxFileSizeMB;
+  const maxSizeMB = MAX_FILE_SIZE_MB;
 
   const handleFile = async (files: File[]) => {
     const f = files[0];
@@ -67,13 +63,6 @@ export default function SplitTool() {
     setProcessing(true);
     setError(null);
 
-    const usageResult = await usage.consume();
-    if (!usageResult.allowed) {
-      setError(usageResult.authenticated ? limitReachedMessage(usageResult.limit) : LOGIN_REQUIRED_MESSAGE);
-      setProcessing(false);
-      return;
-    }
-
     try {
       const ranges = parseRanges();
       const out = await splitPdf(file, ranges);
@@ -89,7 +78,6 @@ export default function SplitTool() {
     }
   };
 
-  const isBlocked = usage.hydrated && (!usage.authenticated || usage.isLimitReached);
 
   return (
     <div>
@@ -115,28 +103,15 @@ export default function SplitTool() {
             Separa cada rango con una coma. Cada rango generará un archivo PDF independiente.
           </p>
 
-          {!results && !isBlocked && (
-            <button
+          {!results && (<button
               type="button"
               onClick={handleSplit}
               disabled={processing}
               className="mt-5 rounded-full bg-ink px-6 py-3 text-sm font-semibold text-white hover:bg-accent disabled:opacity-50"
             >
               Dividir PDF
-            </button>
-          )}
+            </button>)}
 
-          {!results && (
-            <UsageStatus
-          plan={usage.plan}
-              hydrated={usage.hydrated}
-              authenticated={usage.authenticated}
-              used={usage.used}
-              remaining={usage.remaining}
-              limit={usage.limit}
-              isLimitReached={usage.isLimitReached}
-            />
-          )}
         </div>
       )}
 

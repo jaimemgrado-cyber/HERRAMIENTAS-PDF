@@ -54,7 +54,7 @@ export const TOOLS: ToolDefinition[] = [
       },
       {
         question: "¿Cuántos archivos puedo unir a la vez?",
-        answer: "Puedes unir tantos archivos como quieras, dentro del límite de tamaño de tu plan.",
+        answer: "Puedes unir tantos archivos como quieras, respetando el límite técnico de tamaño del archivo.",
       },
     ],
   },

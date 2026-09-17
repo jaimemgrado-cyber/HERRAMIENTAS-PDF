@@ -35,14 +35,6 @@ export default function PrivacyPage() {
 
         <ul>
           <li>
-            Datos de cuenta, como el email y la información necesaria para
-            gestionar la autenticación.
-          </li>
-          <li>
-            Datos relacionados con la suscripción y facturación cuando
-            corresponda.
-          </li>
-          <li>
             Datos técnicos básicos necesarios para el funcionamiento y
             seguridad del servicio.
           </li>
@@ -76,10 +68,7 @@ export default function PrivacyPage() {
         <h2>4. Finalidades y base jurídica</h2>
 
         <p>
-          Los datos se tratan para prestar las funcionalidades solicitadas,
-          gestionar las cuentas de usuario y suscripciones cuando
-          corresponda, mantener la seguridad del servicio y cumplir las
-          obligaciones legales aplicables.
+          Los datos se tratan para prestar las funcionalidades solicitadas, mantener la seguridad del servicio y cumplir las obligaciones legales aplicables.
         </p>
 
         <p>
@@ -91,22 +80,10 @@ export default function PrivacyPage() {
         <h2>5. Destinatarios y proveedores</h2>
 
         <p>
-          PDF Tools puede utilizar servicios de terceros necesarios para el
-          funcionamiento de la plataforma, como servicios de alojamiento,
-          autenticación, procesamiento de pagos y servicios relacionados con
-          publicidad o analítica cuando estén activados.
+          PDF Tools puede utilizar servicios de terceros necesarios para el funcionamiento de la plataforma y servicios relacionados con publicidad o analítica cuando estén activados.
         </p>
 
-        <h2>6. Pagos</h2>
-
-        <p>
-          Los pagos de las suscripciones se gestionan mediante proveedores
-          especializados de procesamiento de pagos. Los datos completos de
-          las tarjetas de pago no se almacenan directamente en los
-          servidores de PDF Tools.
-        </p>
-
-        <h2>7. Conservación</h2>
+        <h2>6. Conservación</h2>
 
         <p>
           Los datos se conservan durante el tiempo necesario para prestar el
@@ -114,7 +91,7 @@ export default function PrivacyPage() {
           obligaciones legales que resulten aplicables.
         </p>
 
-        <h2>8. Tus derechos</h2>
+        <h2>7. Tus derechos</h2>
 
         <p>
           Puedes ejercer los derechos que reconozca la normativa aplicable en
@@ -128,7 +105,7 @@ export default function PrivacyPage() {
           protección de datos competente.
         </p>
 
-        <h2>9. Transferencias internacionales</h2>
+        <h2>8. Transferencias internacionales</h2>
 
         <p>
           Algunos proveedores tecnológicos utilizados por el servicio pueden
@@ -137,7 +114,7 @@ export default function PrivacyPage() {
           garantías previstas por la normativa aplicable.
         </p>
 
-        <h2>10. Seguridad</h2>
+        <h2>9. Seguridad</h2>
 
         <p>
           Aplicamos medidas técnicas y organizativas razonables destinadas a
@@ -145,7 +122,7 @@ export default function PrivacyPage() {
           no autorizados.
         </p>
 
-        <h2>11. Contacto</h2>
+        <h2>10. Contacto</h2>
 
         <p>
           Para consultas relacionadas con esta política o con el tratamiento
